@@ -1,0 +1,22 @@
+# API Configuration (contains sensitive credentials)
+config.js
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.python-version
+
+# Build outputs (if added later)
+dist/
+build/
