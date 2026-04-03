@@ -169,11 +169,12 @@
       window.open(url, '_blank');
     }
 
-    function updateTrackerNav() {
-      const count = Object.keys(getTracker()).length;
-      const btn = document.getElementById('tracker-nav-btn');
-      btn.textContent = count > 0 ? `My tracker (${count})` : 'My tracker';
-    }
+function updateTrackerNav() {
+  const count = Object.keys(getTracker()).length;
+  const btn = document.getElementById('tracker-nav-btn');
+  if (!btn) return;
+  btn.textContent = count > 0 ? `My tracker (${count})` : 'My tracker';
+}
 
     function show(id, btn) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -376,10 +377,11 @@
       }
     }
 
-    function renderTracker() {
-      const tracker = getTracker();
-      const content = document.getElementById('tracker-content');
-      const items = Object.values(tracker);
+function renderTracker() {
+  const tracker = getTracker();
+  const content = document.getElementById('tracker-content');
+  if (!content) return;
+  const items = Object.values(tracker);
 
       if (!items.length) {
         content.innerHTML = '<div class="empty-state">No roles tracked yet. Search for live jobs and hit "+ Track" on anything interesting.</div>';
@@ -483,7 +485,7 @@
       }
       btn.disabled = false; btn.textContent = 'Analyse fit';
     }
-
+  if (typeof window !== 'undefined' && document.getElementById('add-company-form')) {
     document.getElementById('add-company-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('company-name').value.trim();
@@ -529,3 +531,7 @@
 
     updateTrackerNav();
     renderCompanies();
+  }
+    if (typeof module !== 'undefined') {
+  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote };
+}

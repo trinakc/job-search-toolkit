@@ -9,6 +9,9 @@
     "lint": "npm run lint:js && npm run lint:css",
     "test": "jest"
   },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trinakc/job-search-toolkit.git"
@@ -27,6 +30,7 @@
     "eslint-plugin-html": "^8.1.4",
     "globals": "^17.4.0",
     "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
     "postcss-html": "^1.8.1",
     "stylelint": "^17.6.0",
     "stylelint-config-html": "^1.1.0",
