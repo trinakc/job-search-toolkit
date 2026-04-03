@@ -1,0 +1,33 @@
+{
+  "name": "job-search-toolkit",
+  "version": "1.0.0",
+  "description": "A single-file HTML job search dashboard built for Trina's active search for \r Delivery Manager, Engineering Manager, Technical Project Manager, and Scrum Master \r roles in Ireland (Dublin/Cork hybrid or remote).",
+  "main": "config.js",
+  "scripts": {
+    "lint:js": "eslint job-search-toolkit.html",
+    "lint:css": "stylelint job-search-toolkit.html",
+    "lint": "npm run lint:js && npm run lint:css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trinakc/job-search-toolkit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/trinakc/job-search-toolkit/issues"
+  },
+  "homepage": "https://github.com/trinakc/job-search-toolkit#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "eslint-plugin-html": "^8.1.4",
+    "globals": "^17.4.0",
+    "postcss-html": "^1.8.1",
+    "stylelint": "^17.6.0",
+    "stylelint-config-html": "^1.1.0",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}
