@@ -1313,9 +1313,18 @@
     </div>
   </div>
 
+  <!-- Load API configuration from config.js (git-ignored) -->
+  <script src="config.js"></script>
+
   <script>
-    const AID = '91c41ef3';
-    const AKEY = '40896b2515a827e6a2bcf43dd281316e';
+    // API credentials are loaded from config.js (git-ignored)
+    // If not available, show setup instructions
+    if (typeof API_CONFIG === 'undefined') {
+      console.warn('API_CONFIG not loaded. Please copy config.template.js to config.js and add your API keys.');
+    }
+
+    const AID = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_ID) ? API_CONFIG.ADZUNA_APP_ID : '';
+    const AKEY = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_KEY) ? API_CONFIG.ADZUNA_APP_KEY : '';
     const TRACKER_KEY = 'jst_tracker_v1';
     const SEEN_KEY = 'jst_seen_v1';
     const COMPANIES_KEY = 'jst_companies_v1';

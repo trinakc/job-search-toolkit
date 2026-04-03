@@ -27,15 +27,34 @@ Single HTML file — no framework, no build step, no dependencies except:
 
 All state (tracker, companies, seen jobs) stored in browser localStorage.
 
+## Setup
+
+### Get API keys
+
+1. **Adzuna Jobs API**: Register at https://developer.adzuna.com/ to get your App ID and Key.
+2. **Anthropic API**: The Job Fit Scorer currently uses claude.ai web interface; no local key needed unless you add direct API access.
+
+### Configure locally
+
+1. Copy `config.template.js` to `config.js`:
+   ```bash
+   cp config.template.js config.js
+   ```
+2. Open `config.js` and add your Adzuna credentials (never commit this file).
+3. `config.js` is git-ignored and will never be committed.
+
+### Run locally
+
+Start a local server to avoid CORS issues:
+```bash
+python -m http.server 8000
+```
+Then open `http://localhost:8000/job-search-toolkit.html`
+
 ## Known issues
 
-- Adzuna API calls are blocked by CORS when opening the file directly from the 
-  filesystem (`file://`). Run via a local server to use live search:
-
-  python -m http.server 8000 --directory
-
-  Then open `http://localhost:8000/job-search-toolkit.html`
 - Adzuna Ireland (`/ie/`) endpoint access pending confirmation from Adzuna support
+- CORS issues may occur if file is opened directly as `file://` (use local server instead)
 
 ## Candidate profile (for AI scorer context)
 
@@ -45,11 +64,11 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
 - Certifications: CSM (Scrum Alliance 2021), PRINCE2 Foundation (PeopleCert 2026)
 - Open to: Dublin/Cork hybrid (max 2 days), remote, or Limerick-based roles
 
-## API keys
+## Security
 
-Stored directly in the HTML file (not committed to any public repository).
-- Adzuna App ID and Key: in the `<script>` block at the bottom
-- Anthropic API: handled via claude.ai infrastructure when running inside Claude artifacts
+API credentials are stored in `config.js`, which is **git-ignored** and never committed to version control. 
+This prevents accidental exposure of sensitive keys if the repo ever becomes public.
+Always keep `config.js` local and never commit it.
 
 ## Roadmap
 
