@@ -533,7 +533,7 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
   renderCompanies();
 }
 
-/* eslint-disable-next-line no-undef */
 if (typeof module !== 'undefined') {
+  /* eslint-disable-next-line no-undef */
   module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote };
 }
