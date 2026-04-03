@@ -70,30 +70,44 @@ API credentials are stored in `config.js`, which is **git-ignored** and never co
 This prevents accidental exposure of sensitive keys if the repo ever becomes public.
 Always keep `config.js` local and never commit it.
 
-## Roadmap
+## Development practices
 
-- [x] Last-checked date per company card
-- [ ] Local server setup script for Windows
-- [ ] Resolve Adzuna CORS / Ireland endpoint issue
-- [ ] GitHub Pages hosting (would also fix CORS permanently)
-- [ ] Prettify the company cards
-- [ ] Add sorting/filtering by tags
+### Testing
+All new features should have unit tests written before or alongside the implementation.
+Tests live in `app.test.js` and are run with `npm test`.
 
-## Workflow conventions
+**What to test:**
+- Functions that take input and return output
+- Functions that read from or write to localStorage
+- Functions containing conditional logic
 
-- Use task IDs in commit messages: `JST-xx` (e.g. `JST-01: improve company card status`).
-- Include whether AI assistance was used: add `[ai-assisted]` in commit title if the change is generated or significantly guided by Claude Code.
-- Use feature branches for work: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`.
+**What not to test:**
+- Functions that only manipulate the DOM
 
-## Backlog and planning
+Run tests locally before committing:
 
-- Project backlog is maintained in Notion:
-  https://www.notion.so/3374e11bd2e780a39a39d08511a763fd?v=3374e11bd2e780e48d85000c4add0599&source=copy_link
-- Add and prioritize tasks in Notion; keep the README and code comments aligned with the backlog state.
+npm test
 
-## AI safeguard layer
+### Working with Claude Code
+When requesting a new feature, always include testing in the prompt:
 
-- Before committing any AI-generated change, run `git diff` and verify exactly what changed.
-- Ask: what did this change and why? If you can’t explain it clearly, do NOT commit yet.
-- For AI-assisted commits, include `[ai-assisted]` in the message and keep a short note in PR description or commit body about why the change is correct.
-- Keep the human reviewer in the loop: AI suggestions should be reviewed for correctness, clarity, security and style before merge.
+> "Before writing any code, write the unit tests first that describe the expected behaviour. Then implement the feature to make those tests pass."
+
+Read the tests before reading the implementation — if the tests don't clearly describe the expected behaviour in plain English, ask Claude Code to rewrite them before proceeding.
+
+### Commits and branching
+- Use Notion ticket numbers in commit messages: `JST-xx: description`
+- Tag AI-generated commits: `JST-xx: description [ai-assisted]`
+- Use feature branches: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`
+
+### AI involvement tracking
+Tracked on the [Notion project board](https://www.notion.so/3374e11bd2e780a39a39d08511a763fd?v=3374e11bd2e780e48d85000c4add0599):
+- **Generated** — Claude Code wrote the bulk of the code
+- **Assisted** — human-directed with AI support
+- **None** — written without AI involvement
+
+### Before committing
+- Run `npm run lint:js` — confirm no errors
+- Run `npm test` — confirm all tests pass
+- Run `git diff` — read every change and be able to explain what it does and why
+- If you can't explain a change clearly, don't commit it — ask Claude Code to explain first
