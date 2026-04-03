@@ -7,6 +7,7 @@
     "lint:js": "eslint job-search-toolkit.html",
     "lint:css": "stylelint job-search-toolkit.html",
     "lint": "npm run lint:js && npm run lint:css"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
