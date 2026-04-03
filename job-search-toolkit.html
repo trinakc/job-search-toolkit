@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Search Toolkit</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #F7F5F0;
+      --surface: #FFFFFF;
+      --surface2: #F0EDE6;
+      --border: #E2DDD4;
+      --border2: #CBC5BA;
+      --text: #1A1814;
+      --text2: #6B6560;
+      --text3: #9E9890;
+      --accent: #2D5A3D;
+      --accent-light: #E8F0EA;
+      --accent-text: #1A3D27;
+      --warn: #7A4A1E;
+      --warn-light: #F5EDE3;
+      --info: #1A3D6B;
+      --info-light: #E8EFF8;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--text);
+      color: var(--bg);
+      padding: 1.5rem 2.5rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 12px;
+      color: #9E9890;
+      font-family: var(--mono);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      min-height: calc(100vh - 68px);
+    }
+
+    nav {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 0;
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 68px);
+      overflow-y: auto;
+    }
+
+    nav .nav-label {
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.1em;
+      color: var(--text3);
+      padding: 0 1.5rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    nav button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.6rem 1.5rem;
+      font-size: 14px;
+      font-family: var(--sans);
+      color: var(--text2);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    nav button:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    nav button.active {
+      color: var(--text);
+      border-left-color: var(--text);
+      font-weight: 500;
+    }
+
+    nav .nav-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1rem 1.5rem;
+    }
+
+    main {
+      padding: 2.5rem;
+      max-width: 960px;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.4rem;
+    }
+
+    .panel-desc {
+      font-size: 14px;
+      color: var(--text2);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .search-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+
+    select {
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 7px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--text);
+    }
+
+    .search-btn {
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 7px 18px;
+      background: var(--text);
+      color: var(--bg);
+      border: 1.5px solid var(--text);
+      border-radius: 7px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .search-btn:hover {
+      background: #333;
+    }
+
+    .search-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .last-fetched {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-left: auto;
+    }
+
+    .results-summary {
+      font-size: 13px;
+      color: var(--text2);
+      font-family: var(--mono);
+      margin-bottom: 1rem;
+    }
+
+    .results-summary span {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .jobs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .job-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      transition: border-color 0.15s;
+    }
+
+    .job-card:hover {
+      border-color: var(--border2);
+    }
+
+    .job-card.is-new {
+      border-left: 3px solid var(--accent);
+    }
+
+    .job-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .job-title {
+      font-size: 15px;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .new-badge {
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border: 1px solid #C2D9C9;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+
+    .job-meta {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-bottom: 8px;
+    }
+
+    .job-desc {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.5;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .job-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .job-link {
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+      font-family: var(--mono);
+    }
+
+    .job-link:hover {
+      text-decoration: underline;
+    }
+
+    .track-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .track-btn:hover {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border-color: #C2D9C9;
+    }
+
+    .tracked-label {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text3);
+    }
+
+    .empty-state {
+      font-size: 14px;
+      color: var(--text3);
+      font-family: var(--mono);
+      padding: 2rem 0;
+    }
+
+    .loading-state {
+      font-size: 14px;
+      color: var(--text2);
+      font-family: var(--mono);
+      padding: 1.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid var(--border2);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .tracker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tracker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tracker-main {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .tracker-title a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .tracker-title a:hover {
+      text-decoration: underline;
+    }
+
+    .tracker-company {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .tracker-saved {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 4px;
+    }
+
+    .tracker-note-display {
+      font-size: 13px;
+      color: var(--text2);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .tracker-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      align-items: flex-end;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .pill-new {
+      background: var(--surface2);
+      color: var(--text3);
+      border-color: var(--border);
+    }
+
+    .pill-applied {
+      background: var(--info-light);
+      color: var(--info);
+      border-color: #B5C8E8;
+    }
+
+    .pill-interviewing {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border-color: #C2D9C9;
+    }
+
+    .pill-skipped {
+      background: var(--surface2);
+      color: var(--text3);
+      border-color: var(--border);
+      opacity: 0.6;
+    }
+
+    .status-sel {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .note-field {
+      font-size: 12px;
+      font-family: var(--sans);
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      width: 160px;
+    }
+
+    .note-field:focus {
+      border-color: var(--border2);
+    }
+
+    .clear-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text3);
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    .clear-btn:hover {
+      color: var(--warn);
+      border-color: var(--warn);
+    }
+
+    .company-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .company-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      transition: border-color 0.15s;
+    }
+
+    .company-card:hover {
+      border-color: var(--border2);
+    }
+
+    .company-name {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .company-meta {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-bottom: 10px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+    }
+
+    .tag.green {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border-color: #C2D9C9;
+    }
+
+    .careers-link {
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+      font-family: var(--mono);
+    }
+
+    .careers-link:hover {
+      text-decoration: underline;
+    }
+
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .alert-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+    }
+
+    .alert-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .alert-string {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      margin-bottom: 10px;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .copy-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .copy-btn.copied {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .alerts-note {
+      background: var(--warn-light);
+      border: 1px solid #E8C9A0;
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      font-size: 13px;
+      color: var(--warn);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 12px 14px;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 12px;
+    }
+
+    textarea:focus {
+      border-color: var(--text);
+    }
+
+    .analyse-btn {
+      padding: 9px 22px;
+      font-size: 14px;
+      font-family: var(--sans);
+      font-weight: 500;
+      border: 1.5px solid var(--text);
+      border-radius: 7px;
+      background: var(--text);
+      color: var(--bg);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .analyse-btn:hover {
+      background: #333;
+    }
+
+    .analyse-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .result-box {
+      margin-top: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+
+    .score-row {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 1rem;
+    }
+
+    .score-big {
+      font-size: 42px;
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .score-denom {
+      font-size: 16px;
+      color: var(--text3);
+      font-family: var(--mono);
+    }
+
+    .apply-badge {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+      margin-left: auto;
+    }
+
+    .apply-yes {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border-color: #C2D9C9;
+    }
+
+    .apply-no {
+      background: var(--warn-light);
+      color: var(--warn);
+      border-color: #E8C9A0;
+    }
+
+    .score-track {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .score-fill {
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    .result-section {
+      margin-bottom: 1.25rem;
+    }
+
+    .result-section-label {
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 8px;
+    }
+
+    .verdict-text {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .item-row {
+      font-size: 14px;
+      color: var(--text);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.5;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .item-row:last-child {
+      border-bottom: none;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .dot-green {
+      background: var(--accent);
+    }
+
+    .dot-amber {
+      background: #BA7517;
+    }
+
+    .positioning-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      background: var(--surface2);
+      padding: 12px 14px;
+      border-radius: 7px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .api-note {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+        height: auto;
+        display: flex;
+        overflow-x: auto;
+        padding: 0.75rem;
+        gap: 4px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      nav .nav-label,
+      nav .nav-divider {
+        display: none;
+      }
+
+      nav button {
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+      }
+
+      nav button.active {
+        border-bottom-color: var(--text);
+        background: var(--surface2);
+      }
+
+      main {
+        padding: 1.5rem;
+      }
+
+      header {
+        padding: 1.25rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Job Search Toolkit</h1>
+    <p>Delivery Manager · County Limerick · 2026</p>
+  </header>
+
+  <div class="layout">
+    <nav>
+      <div class="nav-label">Live search</div>
+      <button class="active" onclick="show('jobs', this)">Live jobs</button>
+      <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
+      <div class="nav-divider"></div>
+      <div class="nav-label">Reference</div>
+      <button onclick="show('companies', this)">Target companies</button>
+      <button onclick="show('alerts', this)">Google alerts</button>
+      <div class="nav-divider"></div>
+      <div class="nav-label">Tools</div>
+      <button onclick="show('scorer', this)">Job fit scorer</button>
+    </nav>
+
+    <main>
+
+      <div id="jobs" class="panel active">
+        <h2>Live jobs</h2>
+        <p class="panel-desc">Pulls live Irish roles from Adzuna. New roles (ones you haven't seen before) are
+          highlighted with a green border. Hit "+ Track" on anything worth following up.</p>
+        <div class="search-controls">
+          <select id="role-filter">
+            <optgroup label="Delivery Management">
+              <option value="delivery manager">Delivery Manager</option>
+              <option value="release manager">Release Manager</option>
+              <option value="iteration manager">Iteration Manager</option>
+              <option value="software delivery lead">Software Delivery Lead</option>
+              <option value="project delivery lead">Project Delivery Lead</option>
+            </optgroup>
+
+            <optgroup label="Engineering Leadership">
+              <option value="engineering manager">Engineering Manager</option>
+              <option value="software engineering lead">Software Engineering Lead</option>
+              <option value="development manager">Development Manager</option>
+              <option value="squad lead">Squad Lead</option>
+              <option value="technical lead manager">Technical Lead Manager (TLM)</option>
+            </optgroup>
+
+            <optgroup label="Technical Project Management">
+              <option value="technical project manager">Technical Project Manager</option>
+              <option value="technical producer">Technical Producer</option>
+              <option value="it project lead">IT Project Lead</option>
+              <option value="implementation manager">Implementation Manager</option>
+              <option value="solutions project manager">Solutions Project Manager</option>
+            </optgroup>
+
+            <optgroup label="Scrum & Agile">
+              <option value="scrum master">Scrum Master</option>
+              <option value="agile facilitator">Agile Facilitator</option>
+              <option value="team coach">Team Coach</option>
+              <option value="flow manager">Flow Manager</option>
+              <option value="agile coach">Agile Coach</option>
+              <option value="lean-agile practitioner">Lean-Agile Practitioner</option>
+              <option value="transformation lead">Transformation Lead</option>
+            </optgroup>
+
+            <optgroup label="Programme & Portfolio">
+              <option value="programme manager">Programme Manager</option>
+              <option value="portfolio manager">Portfolio Manager</option>
+              <option value="strategic initiative lead">Strategic Initiative Lead</option>
+              <option value="pmo lead">PMO Lead</option>
+              <option value="director of program management">Director of Program Management</option>
+            </optgroup>
+          </select>
+          <select id="location-filter">
+            <option value="ireland">All Ireland</option>
+            <option value="dublin">Dublin</option>
+            <option value="cork">Cork</option>
+            <option value="limerick">Limerick</option>
+          </select>
+          <button class="search-btn" id="fetch-btn" onclick="fetchJobs()">Search</button>
+          <button class="search-btn" id="fetch-all-btn" onclick="fetchAllJobs()"
+            style="background:none;color:var(--text);border-color:var(--border2);">Search all titles</button>
+          <span class="last-fetched" id="last-fetched"></span>
+        </div>
+        <div id="jobs-list">
+          <div class="empty-state">Select a role type and hit Search to pull live jobs.</div>
+        </div>
+      </div>
+
+      <div id="tracker" class="panel">
+        <h2>My tracker</h2>
+        <p class="panel-desc">Roles you've saved from the live search. Update status as you progress and add notes.
+          Saved in your browser — persists between sessions.</p>
+        <div id="tracker-content"></div>
+      </div>
+
+      <div id="companies" class="panel">
+        <h2>Target companies</h2>
+        <p class="panel-desc">Enterprise SaaS companies with Irish offices. Roles often appear on these pages before
+          hitting aggregators.</p>
+        <div class="company-grid">
+          <div class="company-card">
+            <div class="company-name">Datadog</div>
+            <div class="company-meta">Dublin · Observability SaaS</div>
+            <div class="tags"><span class="tag green">Strong fit</span><span class="tag">EM</span><span
+                class="tag">Delivery</span><span class="tag">DevOps</span></div>
+            <a class="careers-link" href="https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland"
+              target="_blank">careers.datadoghq.com →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">HubSpot</div>
+            <div class="company-meta">Dublin · Marketing SaaS</div>
+            <div class="tags"><span class="tag">EM</span><span class="tag">PM</span><span class="tag">Scrum</span></div>
+            <a class="careers-link" href="https://www.hubspot.com/careers/jobs#office=dublin"
+              target="_blank">hubspot.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Zendesk</div>
+            <div class="company-meta">Dublin · CX SaaS</div>
+            <div class="tags"><span class="tag">PM</span><span class="tag">Delivery</span><span class="tag">Agile</span>
+            </div>
+            <a class="careers-link"
+              href="https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland"
+              target="_blank">jobs.zendesk.com →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Teamwork.com</div>
+            <div class="company-meta">Cork · Project Mgmt SaaS</div>
+            <div class="tags"><span class="tag green">Cork-based</span><span class="tag">EM</span><span
+                class="tag">Delivery</span></div>
+            <a class="careers-link" href="https://www.teamwork.com/careers/" target="_blank">teamwork.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Workhuman</div>
+            <div class="company-meta">Dublin · HR Tech SaaS</div>
+            <div class="tags"><span class="tag">EM</span><span class="tag">Delivery</span></div>
+            <a class="careers-link" href="https://www.workhuman.com/company/careers/list/"
+              target="_blank">workhuman.com/company/careers/list →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Tines</div>
+            <div class="company-meta">Dublin · Security Automation</div>
+            <div class="tags"><span class="tag">EM</span><span class="tag">Delivery</span></div>
+            <a class="careers-link" href="https://www.tines.com/careers" target="_blank">tines.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Phorest</div>
+            <div class="company-meta">Dublin · Vertical SaaS</div>
+            <div class="tags"><span class="tag">EM</span><span class="tag">Scrum</span></div>
+            <a class="careers-link" href="https://www.phorest.com/careers/" target="_blank">phorest.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">AMCS Group</div>
+            <div class="company-meta">Limerick · Environment and Resources</div>
+            <a class="careers-link" href="https://www.amcsgroup.com/about/careers/"
+              target="_blank">amcsgroup.com/about/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Action Point (Viatel Technology Group)</div>
+            <div class="company-meta">Limerick · Digital transformation and cloud-based enterprise solutions</div>
+            <a class="careers-link" href="https://actionpoint.ie/careers/" target="_blank">actionpoint.ie/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">HR Duo</div>
+            <div class="company-meta">Limerick · HR-tech company</div>
+            <a class="careers-link" href="https://hrduo.com/careers" target="_blank">hrduo.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Deveire</div>
+            <div class="company-meta">Limerick · Bespoke digital solutions and CMS platforms</div>
+            <a class="careers-link" href="https://www.deveire.com/careers" target="_blank">deveire.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Dell Technologies</div>
+            <div class="company-meta">Limerick · Digital transformation, cybersecurity, and cloud software services
+            </div>
+            <a class="careers-link" href="https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4"
+              target="_blank">jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4 →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Jaguar Land Rover (Software Center)</div>
+            <div class="company-meta">Limerick · "Software Defined Vehicles," including cloud platforms, AI, and
+              enterprise data management</div>
+            <a class="careers-link" href="https://www.jaguarlandrovercareers.com/content/Locations/Ireland/"
+              target="_blank">jaguarlandrovercareers.com/content/Locations/Ireland →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Advarra</div>
+            <div class="company-meta">Limerick · Provides workflow and compliance SaaS solutions for clinical research
+              and life sciences</div>
+            <a class="careers-link" href="https://www.advarra.com/about/careers/"
+              target="_blank">advarra.com/about/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">ACI Worldwide</div>
+            <div class="company-meta">Limerick · A global provider of real-time payments software and enterprise SaaS
+              solutions for banks and retailers</div>
+            <a class="careers-link" href="https://www.aciworldwide.com/about-aci/careers"
+              target="_blank">aciworldwide.com/about-aci/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Stats Perform</div>
+            <div class="company-meta">Limerick · An AI and data SaaS company providing deep sports analytics and
+              enterprise data solutions to media and pro teams</div>
+            <a class="careers-link" href="https://www.statsperform.com/careers/"
+              target="_blank">statsperform.com/careers →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">Elastic</div>
+            <div class="company-meta">Remote · Elasticsearch</div>
+            <a class="careers-link" href="https://jobs.elastic.co/jobs/country/ireland?size=n_20_n"
+              target="_blank">jobs.elastic.co/jobs/country/ireland?size=n_20_n →</a>
+          </div>
+          <div class="company-card">
+            <div class="company-name">RxSense</div>
+            <div class="company-meta">Dublin · Healthtech</div>
+            <a class="careers-link" href="https://job-boards.greenhouse.io/rxsense"
+              target="_blank">job-boards.greenhouse.io/rxsense →</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="alerts" class="panel">
+        <h2>Google alert strings</h2>
+        <p class="panel-desc">Set these up at <a href="https://google.com/alerts" target="_blank"
+            style="color:var(--accent);">google.com/alerts</a>. Set frequency to "as it happens". Copy each string
+          exactly as shown.</p>
+        <div class="alerts-note">Tip: Google Alerts catches roles posted on company blogs, press releases, and smaller
+          boards that don't always surface on LinkedIn or Indeed.</div>
+        <div class="alert-list">
+          <div class="alert-card">
+            <div class="alert-name">Engineering Manager — Ireland</div>
+            <div class="alert-string">"Engineering Manager" Ireland hybrid (Dublin OR Cork) (SaaS OR software)</div>
+            <button class="copy-btn"
+              onclick="copyAlert(this,'&quot;Engineering Manager&quot; Ireland hybrid (Dublin OR Cork) (SaaS OR software)')">Copy
+              string</button>
+          </div>
+          <div class="alert-card">
+            <div class="alert-name">Delivery Manager — Ireland</div>
+            <div class="alert-string">"Delivery Manager" Ireland (Dublin OR Cork OR remote) (SaaS OR software OR tech)
+            </div>
+            <button class="copy-btn"
+              onclick="copyAlert(this,'&quot;Delivery Manager&quot; Ireland (Dublin OR Cork OR remote) (SaaS OR software OR tech)')">Copy
+              string</button>
+          </div>
+          <div class="alert-card">
+            <div class="alert-name">Technical Project Manager — Ireland</div>
+            <div class="alert-string">"Technical Project Manager" Ireland (Dublin OR Cork OR Limerick) software</div>
+            <button class="copy-btn"
+              onclick="copyAlert(this,'&quot;Technical Project Manager&quot; Ireland (Dublin OR Cork OR Limerick) software')">Copy
+              string</button>
+          </div>
+          <div class="alert-card">
+            <div class="alert-name">Scrum Master / Agile Coach — Ireland</div>
+            <div class="alert-string">("Scrum Master" OR "Agile Coach") Ireland (Dublin OR Cork OR remote) software
+            </div>
+            <button class="copy-btn"
+              onclick="copyAlert(this,'(&quot;Scrum Master&quot; OR &quot;Agile Coach&quot;) Ireland (Dublin OR Cork OR remote) software')">Copy
+              string</button>
+          </div>
+          <div class="alert-card">
+            <div class="alert-name">DevOps / Platform delivery</div>
+            <div class="alert-string">("Delivery Manager" OR "Engineering Manager") Ireland (DevOps OR "CI/CD" OR cloud
+              OR platform)</div>
+            <button class="copy-btn"
+              onclick="copyAlert(this,'(&quot;Delivery Manager&quot; OR &quot;Engineering Manager&quot;) Ireland (DevOps OR &quot;CI/CD&quot; OR cloud OR platform)')">Copy
+              string</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="scorer" class="panel">
+        <h2>Job fit scorer</h2>
+        <p class="panel-desc">Paste a job description and get a fit analysis against your profile as a Delivery Manager
+          with technical background in DevOps, CI/CD, and cloud infrastructure.</p>
+        <p class="api-note">Requires internet connection · Uses Anthropic API · Covered by your Claude subscription</p>
+        <br>
+        <textarea id="jd" placeholder="Paste the full job description here..."></textarea>
+        <button class="analyse-btn" id="analyse-btn" onclick="scoreJob()">Analyse fit</button>
+        <div id="score-result"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const AID = '91c41ef3';
+    const AKEY = '40896b2515a827e6a2bcf43dd281316e';
+    const TRACKER_KEY = 'jst_tracker_v1';
+    const SEEN_KEY = 'jst_seen_v1';
+
+    function getTracker() { try { return JSON.parse(localStorage.getItem(TRACKER_KEY) || '{}'); } catch { return {}; } }
+    function saveTracker(d) { localStorage.setItem(TRACKER_KEY, JSON.stringify(d)); updateTrackerNav(); }
+    function getSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; } }
+    function saveSeen(ids) { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); }
+
+    function updateTrackerNav() {
+      const count = Object.keys(getTracker()).length;
+      const btn = document.getElementById('tracker-nav-btn');
+      btn.textContent = count > 0 ? `My tracker (${count})` : 'My tracker';
+    }
+
+    function show(id, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+      if (id === 'tracker') renderTracker();
+    }
+
+    function copyAlert(btn, text) {
+      const decoded = text.replace(/&quot;/g, '"');
+      navigator.clipboard.writeText(decoded).then(() => {
+        btn.textContent = 'Copied!'; btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy string'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    async function fetchJobs() {
+      const role = document.getElementById('role-filter').value;
+      const loc = document.getElementById('location-filter').value;
+      const btn = document.getElementById('fetch-btn');
+      const list = document.getElementById('jobs-list');
+      btn.disabled = true; btn.textContent = 'Searching...';
+      list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Fetching live jobs from Adzuna...</div>';
+
+      const where = loc === 'ireland' ? 'ireland' : encodeURIComponent(loc);
+      const url = `https://api.adzuna.com/v1/api/jobs/ie/search/1?app_id=${AID}&app_key=${AKEY}&results_per_page=20&what=${encodeURIComponent(role)}&where=${where}&content-type=application/json`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const jobs = data.results || [];
+
+        const seen = getSeen();
+        const newIds = jobs.map(j => j.id).filter(id => !seen.includes(id));
+        saveSeen([...new Set([...seen, ...jobs.map(j => j.id)])]);
+
+        document.getElementById('last-fetched').textContent =
+          'Last fetched: ' + new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+
+        if (!jobs.length) {
+          list.innerHTML = '<div class="empty-state">No roles found. Try a different role type or location.</div>';
+          btn.disabled = false; btn.textContent = 'Search'; return;
+        }
+
+        const tracker = getTracker();
+        const newCount = newIds.length;
+        const summary = `<div class="results-summary">Showing <span>${jobs.length}</span> roles${newCount > 0 ? ' &middot; <span style="color:var(--accent)">' + newCount + ' new since last search</span>' : ''}</div>`;
+
+        const cards = jobs.map(job => {
+          const isNew = newIds.includes(job.id);
+          const isTracked = !!tracker[job.id];
+          const company = job.company?.display_name || '';
+          const location = job.location?.display_name || '';
+          const salary = job.salary_min && job.salary_max
+            ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
+            : '';
+          const posted = job.created
+            ? ' &middot; ' + new Date(job.created).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+            : '';
+          const desc = job.description
+            ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
+            : '';
+          const safeTitle = (job.title || '').replace(/'/g, "\\'");
+          const safeCompany = company.replace(/'/g, "\\'");
+          const safeUrl = (job.redirect_url || '').replace(/'/g, "\\'");
+
+          return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.id}">
+        <div class="job-header">
+          <div class="job-title">${job.title}</div>
+          ${isNew ? '<span class="new-badge">New</span>' : ''}
+        </div>
+        <div class="job-meta">${company}${location ? ' &middot; ' + location : ''}${salary}${posted}</div>
+        <div class="job-desc">${desc}</div>
+        <div class="job-actions">
+          <a class="job-link" href="${job.redirect_url}" target="_blank">View role &rarr;</a>
+          ${isTracked
+              ? '<span class="tracked-label">Tracked</span>'
+              : `<button class="track-btn" onclick="addToTracker('${job.id}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
+            }
+        </div>
+      </div>`;
+        }).join('');
+
+        list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
+      } catch (e) {
+        list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your internet connection and try again.</div>';
+      }
+      btn.disabled = false; btn.textContent = 'Search';
+    }
+
+    async function fetchAllJobs() {
+      const coreTitles = [
+        'delivery manager',
+        'engineering manager',
+        'scrum master',
+        'technical project manager',
+        'programme manager',
+        'agile coach',
+        'release manager',
+        'development manager'
+      ];
+      const loc = document.getElementById('location-filter').value;
+      const btn = document.getElementById('fetch-all-btn');
+      const list = document.getElementById('jobs-list');
+      btn.disabled = true; btn.textContent = 'Searching...';
+      list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Searching all titles — this may take a moment...</div>';
+
+      const where = loc === 'ireland' ? 'ireland' : encodeURIComponent(loc);
+
+      try {
+        const requests = coreTitles.map(title =>
+          fetch(`https://api.adzuna.com/v1/api/jobs/ie/search/1?app_id=${AID}&app_key=${AKEY}&results_per_page=10&what=${encodeURIComponent(title)}&where=${where}&content-type=application/json`)
+            .then(r => r.json())
+            .then(d => d.results || [])
+            .catch(() => [])
+        );
+
+        const results = await Promise.all(requests);
+        const seen = getSeen();
+        const seenIds = new Set();
+        const allJobs = [];
+
+        results.flat().forEach(job => {
+          if (!seenIds.has(job.id)) {
+            seenIds.add(job.id);
+            allJobs.push(job);
+          }
+        });
+
+        allJobs.sort((a, b) => new Date(b.created) - new Date(a.created));
+
+        const newIds = allJobs.map(j => j.id).filter(id => !seen.includes(id));
+        saveSeen([...new Set([...seen, ...allJobs.map(j => j.id)])]);
+
+        document.getElementById('last-fetched').textContent =
+          'Last fetched: ' + new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+
+        if (!allJobs.length) {
+          list.innerHTML = '<div class="empty-state">No roles found.</div>';
+          btn.disabled = false; btn.textContent = 'Search all titles'; return;
+        }
+
+        const tracker = getTracker();
+        const newCount = newIds.length;
+        const summary = `<div class="results-summary">Showing <span>${allJobs.length}</span> roles across all titles${newCount > 0 ? ' &middot; <span style="color:var(--accent)">' + newCount + ' new since last search</span>' : ''}</div>`;
+
+        const cards = allJobs.map(job => {
+          const isNew = newIds.includes(job.id);
+          const isTracked = !!tracker[job.id];
+          const company = job.company?.display_name || '';
+          const location = job.location?.display_name || '';
+          const salary = job.salary_min && job.salary_max
+            ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
+            : '';
+          const posted = job.created
+            ? ' &middot; ' + new Date(job.created).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+            : '';
+          const desc = job.description
+            ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
+            : '';
+          const safeTitle = (job.title || '').replace(/'/g, "\\'");
+          const safeCompany = company.replace(/'/g, "\\'");
+          const safeUrl = (job.redirect_url || '').replace(/'/g, "\\'");
+
+          return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.id}">
+        <div class="job-header">
+          <div class="job-title">${job.title}</div>
+          ${isNew ? '<span class="new-badge">New</span>' : ''}
+        </div>
+        <div class="job-meta">${company}${location ? ' &middot; ' + location : ''}${salary}${posted}</div>
+        <div class="job-desc">${desc}</div>
+        <div class="job-actions">
+          <a class="job-link" href="${job.redirect_url}" target="_blank">View role &rarr;</a>
+          ${isTracked
+              ? '<span class="tracked-label">Tracked</span>'
+              : `<button class="track-btn" onclick="addToTracker('${job.id}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
+            }
+        </div>
+      </div>`;
+        }).join('');
+
+        list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
+      } catch (e) {
+        list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your connection and try again.</div>';
+      }
+
+      btn.disabled = false; btn.textContent = 'Search all titles';
+    }
+
+    function addToTracker(id, title, company, url) {
+      const tracker = getTracker();
+      tracker[id] = { id, title, company, url, status: 'new', note: '', savedAt: new Date().toISOString() };
+      saveTracker(tracker);
+      const card = document.getElementById('jcard-' + id);
+      if (card) {
+        const btn = card.querySelector('.track-btn');
+        if (btn) btn.outerHTML = '<span class="tracked-label">Tracked</span>';
+      }
+    }
+
+    function renderTracker() {
+      const tracker = getTracker();
+      const content = document.getElementById('tracker-content');
+      const items = Object.values(tracker);
+
+      if (!items.length) {
+        content.innerHTML = '<div class="empty-state">No roles tracked yet. Search for live jobs and hit "+ Track" on anything interesting.</div>';
+        return;
+      }
+
+      const order = { interviewing: 0, applied: 1, new: 2, skipped: 3 };
+      items.sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+
+      const pillClass = { new: 'pill-new', applied: 'pill-applied', interviewing: 'pill-interviewing', skipped: 'pill-skipped' };
+      const pillLabel = { new: 'New', applied: 'Applied', interviewing: 'Interviewing', skipped: 'Skipped' };
+
+      content.innerHTML = `
+    <button class="clear-btn" onclick="clearTracker()">Clear all tracked roles</button>
+    <div class="tracker-list">
+      ${items.map(item => `
+        <div class="tracker-card">
+          <div class="tracker-main">
+            <div class="tracker-title"><a href="${item.url}" target="_blank">${item.title}</a></div>
+            <div class="tracker-company">${item.company}</div>
+            <div class="tracker-saved">Saved ${new Date(item.savedAt).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+            ${item.note ? `<div class="tracker-note-display">${item.note}</div>` : ''}
+          </div>
+          <div class="tracker-controls">
+            <span class="status-pill ${pillClass[item.status]}">${pillLabel[item.status]}</span>
+            <select class="status-sel" onchange="updateStatus('${item.id}', this.value)">
+              <option value="new" ${item.status === 'new' ? 'selected' : ''}>New</option>
+              <option value="applied" ${item.status === 'applied' ? 'selected' : ''}>Applied</option>
+              <option value="interviewing" ${item.status === 'interviewing' ? 'selected' : ''}>Interviewing</option>
+              <option value="skipped" ${item.status === 'skipped' ? 'selected' : ''}>Skipped</option>
+            </select>
+            <input class="note-field" type="text" placeholder="Add a note..." value="${item.note || ''}"
+              onblur="updateNote('${item.id}', this.value)"
+              onkeydown="if(event.key==='Enter')this.blur()">
+          </div>
+        </div>`).join('')}
+    </div>`;
+    }
+
+    function updateStatus(id, status) {
+      const t = getTracker(); if (t[id]) { t[id].status = status; saveTracker(t); renderTracker(); }
+    }
+    function updateNote(id, note) {
+      const t = getTracker(); if (t[id]) { t[id].note = note; saveTracker(t); }
+    }
+    function clearTracker() {
+      if (confirm('Clear all tracked roles? This cannot be undone.')) {
+        localStorage.removeItem(TRACKER_KEY); updateTrackerNav(); renderTracker();
+      }
+    }
+
+    async function scoreJob() {
+      const jd = document.getElementById('jd').value.trim();
+      if (!jd) return;
+      const btn = document.getElementById('analyse-btn');
+      const result = document.getElementById('score-result');
+      btn.disabled = true; btn.textContent = 'Analysing...';
+      result.innerHTML = '<div class="loading-state"><div class="spinner"></div>Reading the job description...</div>';
+
+      const profile = `Trina is a Delivery Manager and Agile practitioner based in County Limerick, Ireland, open to hybrid roles in Dublin or Cork (max 2 days onsite) or fully remote. Engineering Manager at QAD Inc (2024-2026): led globally distributed team, owned cross-functional delivery of observability frameworks and DevOps tooling, interim Product Owner, managed strategic pivots. Previous: Principal QA Engineer & Scrum Master, Senior QA Analyst & Scrum Master (QAD). Technical: AWS (EKS, RDS, EC2), Kubernetes, Docker, GitLab CI/CD, Bamboo, Bash, Python, SQL, Linux. Delivery: Scrum, Kanban, cross-functional programme coordination, risk and dependency management, stakeholder management. Certifications: CSM (Scrum Alliance 2021), PRINCE2 Foundation 7th ed (PeopleCert 2026). BSc Computer Systems, University of Limerick. Targeting: Delivery Manager, Engineering Manager, Technical Project Manager, Scrum Master in Enterprise SaaS/software.`;
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+            messages: [{ role: 'user', content: `You are a senior recruiter assessing job fit. Candidate:\n\n${profile}\n\nJob description:\n\n${jd}\n\nReturn ONLY valid JSON (no markdown) with: score (0-100 int), verdict (1 sentence max 20 words), strengths (3-4 strings max 15 words each), gaps (2-3 strings max 15 words each), positioning (1 paragraph max 60 words), apply (boolean).` }]
+          })
+        });
+        const data = await res.json();
+        const r = JSON.parse(data.content.map(i => i.text || '').join('').replace(/```json|```/g, '').trim());
+        const fc = r.score >= 70 ? '#2D5A3D' : r.score >= 50 ? '#BA7517' : '#B03A2E';
+
+        result.innerHTML = `<div class="result-box">
+      <div class="score-row">
+        <span class="score-big">${r.score}</span>
+        <span class="score-denom">/ 100</span>
+        <span class="apply-badge ${r.apply ? 'apply-yes' : 'apply-no'}">${r.apply ? 'Recommended' : 'Proceed with caution'}</span>
+      </div>
+      <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${fc};"></div></div>
+      <div class="result-section">
+        <div class="result-section-label">Verdict</div>
+        <div class="verdict-text">${r.verdict}</div>
+      </div>
+      <div class="result-section">
+        <div class="result-section-label">Strengths</div>
+        ${r.strengths.map(s => `<div class="item-row"><span class="dot dot-green"></span>${s}</div>`).join('')}
+      </div>
+      <div class="result-section">
+        <div class="result-section-label">Gaps / risks</div>
+        ${r.gaps.map(g => `<div class="item-row"><span class="dot dot-amber"></span>${g}</div>`).join('')}
+      </div>
+      <div class="result-section">
+        <div class="result-section-label">How to position yourself</div>
+        <div class="positioning-text">${r.positioning}</div>
+      </div>
+    </div>`;
+      } catch (e) {
+        result.innerHTML = '<div class="loading-state" style="color:#B03A2E;">Something went wrong — check your connection and try again.</div>';
+      }
+      btn.disabled = false; btn.textContent = 'Analyse fit';
+    }
+
+    updateTrackerNav();
+  </script>
+</body>
+
+</html>
