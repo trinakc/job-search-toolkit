@@ -844,6 +844,126 @@
         padding: 1.25rem 1.5rem;
       }
     }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-content h3 {
+      margin-bottom: 1rem;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .modal-content label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 14px;
+      color: var(--text2);
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--text);
+      margin-bottom: 1rem;
+      box-sizing: border-box;
+      font-family: var(--sans);
+      font-size: 14px;
+    }
+
+    .modal-content input:focus {
+      border-color: var(--text);
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-actions button {
+      padding: 8px 16px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 14px;
+    }
+
+    .modal-actions button[type="submit"] {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    .modal-actions button:hover {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .modal-actions button[type="submit"]:hover {
+      background: #333;
+    }
+
+    .add-company-btn {
+      font-size: 14px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      font-family: var(--sans);
+    }
+
+    .add-company-btn:hover {
+      background: var(--accent-text);
+    }
+
+    .remove-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text3);
+      cursor: pointer;
+    }
+
+    .remove-btn:hover {
+      color: var(--warn);
+      border-color: var(--warn);
+    }
   </style>
 </head>
 
@@ -945,126 +1065,8 @@
         <h2>Target companies</h2>
         <p class="panel-desc">Enterprise SaaS companies with Irish offices. Roles often appear on these pages before
           hitting aggregators.</p>
-        <div class="company-grid">
-          <div class="company-card">
-            <div class="company-name">Datadog</div>
-            <div class="company-meta">Dublin · Observability SaaS</div>
-            <div class="tags"><span class="tag green">Strong fit</span><span class="tag">EM</span><span
-                class="tag">Delivery</span><span class="tag">DevOps</span></div>
-            <a class="careers-link" href="https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland"
-              target="_blank">careers.datadoghq.com →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">HubSpot</div>
-            <div class="company-meta">Dublin · Marketing SaaS</div>
-            <div class="tags"><span class="tag">EM</span><span class="tag">PM</span><span class="tag">Scrum</span></div>
-            <a class="careers-link" href="https://www.hubspot.com/careers/jobs#office=dublin"
-              target="_blank">hubspot.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Zendesk</div>
-            <div class="company-meta">Dublin · CX SaaS</div>
-            <div class="tags"><span class="tag">PM</span><span class="tag">Delivery</span><span class="tag">Agile</span>
-            </div>
-            <a class="careers-link"
-              href="https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland"
-              target="_blank">jobs.zendesk.com →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Teamwork.com</div>
-            <div class="company-meta">Cork · Project Mgmt SaaS</div>
-            <div class="tags"><span class="tag green">Cork-based</span><span class="tag">EM</span><span
-                class="tag">Delivery</span></div>
-            <a class="careers-link" href="https://www.teamwork.com/careers/" target="_blank">teamwork.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Workhuman</div>
-            <div class="company-meta">Dublin · HR Tech SaaS</div>
-            <div class="tags"><span class="tag">EM</span><span class="tag">Delivery</span></div>
-            <a class="careers-link" href="https://www.workhuman.com/company/careers/list/"
-              target="_blank">workhuman.com/company/careers/list →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Tines</div>
-            <div class="company-meta">Dublin · Security Automation</div>
-            <div class="tags"><span class="tag">EM</span><span class="tag">Delivery</span></div>
-            <a class="careers-link" href="https://www.tines.com/careers" target="_blank">tines.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Phorest</div>
-            <div class="company-meta">Dublin · Vertical SaaS</div>
-            <div class="tags"><span class="tag">EM</span><span class="tag">Scrum</span></div>
-            <a class="careers-link" href="https://www.phorest.com/careers/" target="_blank">phorest.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">AMCS Group</div>
-            <div class="company-meta">Limerick · Environment and Resources</div>
-            <a class="careers-link" href="https://www.amcsgroup.com/about/careers/"
-              target="_blank">amcsgroup.com/about/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Action Point (Viatel Technology Group)</div>
-            <div class="company-meta">Limerick · Digital transformation and cloud-based enterprise solutions</div>
-            <a class="careers-link" href="https://actionpoint.ie/careers/" target="_blank">actionpoint.ie/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">HR Duo</div>
-            <div class="company-meta">Limerick · HR-tech company</div>
-            <a class="careers-link" href="https://hrduo.com/careers" target="_blank">hrduo.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Deveire</div>
-            <div class="company-meta">Limerick · Bespoke digital solutions and CMS platforms</div>
-            <a class="careers-link" href="https://www.deveire.com/careers" target="_blank">deveire.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Dell Technologies</div>
-            <div class="company-meta">Limerick · Digital transformation, cybersecurity, and cloud software services
-            </div>
-            <a class="careers-link" href="https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4"
-              target="_blank">jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4 →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Jaguar Land Rover (Software Center)</div>
-            <div class="company-meta">Limerick · "Software Defined Vehicles," including cloud platforms, AI, and
-              enterprise data management</div>
-            <a class="careers-link" href="https://www.jaguarlandrovercareers.com/content/Locations/Ireland/"
-              target="_blank">jaguarlandrovercareers.com/content/Locations/Ireland →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Advarra</div>
-            <div class="company-meta">Limerick · Provides workflow and compliance SaaS solutions for clinical research
-              and life sciences</div>
-            <a class="careers-link" href="https://www.advarra.com/about/careers/"
-              target="_blank">advarra.com/about/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">ACI Worldwide</div>
-            <div class="company-meta">Limerick · A global provider of real-time payments software and enterprise SaaS
-              solutions for banks and retailers</div>
-            <a class="careers-link" href="https://www.aciworldwide.com/about-aci/careers"
-              target="_blank">aciworldwide.com/about-aci/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Stats Perform</div>
-            <div class="company-meta">Limerick · An AI and data SaaS company providing deep sports analytics and
-              enterprise data solutions to media and pro teams</div>
-            <a class="careers-link" href="https://www.statsperform.com/careers/"
-              target="_blank">statsperform.com/careers →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">Elastic</div>
-            <div class="company-meta">Remote · Elasticsearch</div>
-            <a class="careers-link" href="https://jobs.elastic.co/jobs/country/ireland?size=n_20_n"
-              target="_blank">jobs.elastic.co/jobs/country/ireland?size=n_20_n →</a>
-          </div>
-          <div class="company-card">
-            <div class="company-name">RxSense</div>
-            <div class="company-meta">Dublin · Healthtech</div>
-            <a class="careers-link" href="https://job-boards.greenhouse.io/rxsense"
-              target="_blank">job-boards.greenhouse.io/rxsense →</a>
-          </div>
-        </div>
+        <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
+        <div class="company-grid"></div>
       </div>
 
       <div id="alerts" class="panel">
@@ -1130,16 +1132,98 @@
     </main>
   </div>
 
+  <div id="add-company-modal" class="modal">
+    <div class="modal-content">
+      <h3>Add new company</h3>
+      <form id="add-company-form">
+        <label for="company-name">Company name *</label>
+        <input type="text" id="company-name" required>
+        <label for="company-location">Location / description</label>
+        <input type="text" id="company-location" placeholder="e.g. Dublin · Enterprise SaaS">
+        <label for="company-url">Careers page URL *</label>
+        <input type="url" id="company-url" required>
+        <label for="company-tags">Tags (comma separated)</label>
+        <input type="text" id="company-tags" placeholder="e.g. EM, Delivery, Remote">
+        <div class="modal-actions">
+          <button type="button" onclick="closeModal()">Cancel</button>
+          <button type="submit">Save company</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const AID = '91c41ef3';
     const AKEY = '40896b2515a827e6a2bcf43dd281316e';
     const TRACKER_KEY = 'jst_tracker_v1';
     const SEEN_KEY = 'jst_seen_v1';
+    const COMPANIES_KEY = 'jst_companies_v1';
+
+    const DEFAULT_COMPANIES = [
+      { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'] },
+      { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'] },
+      { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'] },
+      { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'] },
+      { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'] },
+      { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'] },
+      { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'] },
+      { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [] },
+      { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [] },
+      { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [] },
+      { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [] },
+      { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [] },
+      { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [] },
+      { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [] },
+      { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [] },
+      { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [] },
+      { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [] },
+      { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [] },
+    ];
 
     function getTracker() { try { return JSON.parse(localStorage.getItem(TRACKER_KEY) || '{}'); } catch { return {}; } }
     function saveTracker(d) { localStorage.setItem(TRACKER_KEY, JSON.stringify(d)); updateTrackerNav(); }
     function getSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; } }
     function saveSeen(ids) { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); }
+
+    function getCompanies() {
+      let companies = JSON.parse(localStorage.getItem(COMPANIES_KEY));
+      if (!companies) {
+        companies = DEFAULT_COMPANIES;
+        localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies));
+      }
+      return companies;
+    }
+    function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
+
+    function renderCompanies() {
+      const companies = getCompanies();
+      const grid = document.querySelector('.company-grid');
+      grid.innerHTML = companies.map(company => `
+        <div class="company-card">
+          <div class="company-name">${company.name}</div>
+          <div class="company-meta">${company.location}</div>
+          ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
+          <a class="careers-link" href="${company.url}" target="_blank">${company.url.replace('https://', '').split('/')[0]} →</a>
+          <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function openAddCompanyModal() {
+      document.getElementById('add-company-modal').classList.add('active');
+      document.getElementById('company-name').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('add-company-modal').classList.remove('active');
+      document.getElementById('add-company-form').reset();
+    }
+
+    function removeCompany(name) {
+      const companies = getCompanies().filter(c => c.name !== name);
+      saveCompanies(companies);
+      renderCompanies();
+    }
 
     function updateTrackerNav() {
       const count = Object.keys(getTracker()).length;
@@ -1153,6 +1237,7 @@
       document.getElementById(id).classList.add('active');
       btn.classList.add('active');
       if (id === 'tracker') renderTracker();
+      if (id === 'companies') renderCompanies();
     }
 
     function copyAlert(btn, text) {
@@ -1455,7 +1540,30 @@
       btn.disabled = false; btn.textContent = 'Analyse fit';
     }
 
+    document.getElementById('add-company-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('company-name').value.trim();
+      const location = document.getElementById('company-location').value.trim();
+      const url = document.getElementById('company-url').value.trim();
+      const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
+      if (!name || !url) return;
+      const companies = getCompanies();
+      companies.push({ name, location, url, tags });
+      saveCompanies(companies);
+      renderCompanies();
+      closeModal();
+    });
+
+    document.getElementById('add-company-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'add-company-modal') closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
+    });
+
     updateTrackerNav();
+    renderCompanies();
   </script>
 </body>
 
