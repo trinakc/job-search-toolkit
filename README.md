@@ -11,7 +11,9 @@ roles in Ireland (Dublin/Cork hybrid or remote).
 - **My tracker** — save interesting roles, track status (New → Applied → Interviewing → Skipped), 
   add notes. Persists in browser localStorage.
 - **Target companies** — dynamic list of target employers with careers page links and tags. 
-  Add and remove companies via the UI. Click tracking records last visit date. Persists in browser localStorage.
+  Add, edit, and remove companies via the UI. Status badges show application progress at a glance. 
+  Click tracking records last visit date. Expandable application tracking: current status, role applied for, 
+  useful company info, with last updated timestamps. Persists in browser localStorage.
 - **Google alerts** — pre-built search strings to paste into google.com/alerts
 - **Job fit scorer** — paste a job description, get an AI-powered fit analysis against 
   Trina's profile using the Anthropic API
@@ -55,3 +57,5 @@ Stored directly in the HTML file (not committed to any public repository).
 - [ ] Local server setup script for Windows
 - [ ] Resolve Adzuna CORS / Ireland endpoint issue
 - [ ] GitHub Pages hosting (would also fix CORS permanently)
+- [ ] Prettify the company cards
+- [ ] Add sorting/filtering by tags

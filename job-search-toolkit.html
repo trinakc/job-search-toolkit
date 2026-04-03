@@ -960,11 +960,157 @@
       cursor: pointer;
     }
 
+    .edit-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .edit-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
     .company-last-clicked {
       font-size: 11px;
       color: var(--text3);
       font-family: var(--mono);
       margin-top: 4px;
+    }
+
+    .company-status {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    .status-not-applied {
+      background: var(--surface2);
+      color: var(--text3);
+      border-color: var(--border);
+    }
+
+    .status-applied {
+      background: var(--info-light);
+      color: var(--info);
+      border-color: #B5C8E8;
+    }
+
+    .status-interviewing {
+      background: var(--accent-light);
+      color: var(--accent-text);
+      border-color: #C2D9C9;
+    }
+
+    .status-rejected {
+      background: var(--warn-light);
+      color: var(--warn);
+      border-color: #E8C9A0;
+    }
+
+    .status-offer {
+      background: #E8F5E8;
+      color: #2D5A2D;
+      border-color: #A8D5A8;
+    }
+
+    .expand-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: none;
+      color: var(--text2);
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .expand-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .company-expanded {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .company-expanded.active {
+      display: block;
+    }
+
+    .expanded-field {
+      margin-bottom: 10px;
+    }
+
+    .expanded-field label {
+      display: block;
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 4px;
+      font-family: var(--mono);
+    }
+
+    .expanded-field select,
+    .expanded-field input,
+    .expanded-field textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+
+    .expanded-field textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .expanded-field select:focus,
+    .expanded-field input:focus,
+    .expanded-field textarea:focus {
+      border-color: var(--text);
+      outline: none;
+    }
+
+    .save-btn {
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 6px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .save-btn:hover {
+      background: var(--accent-text);
+    }
+
+    .company-last-updated {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 8px;
     }
   </style>
 </head>
@@ -1136,8 +1282,9 @@
 
   <div id="add-company-modal" class="modal">
     <div class="modal-content">
-      <h3>Add new company</h3>
+      <h3 id="modal-title">Add new company</h3>
       <form id="add-company-form">
+        <input type="hidden" id="edit-index" value="-1">
         <label for="company-name">Company name *</label>
         <input type="text" id="company-name" required>
         <label for="company-location">Location / description</label>
@@ -1146,9 +1293,21 @@
         <input type="url" id="company-url" required>
         <label for="company-tags">Tags (comma separated)</label>
         <input type="text" id="company-tags" placeholder="e.g. EM, Delivery, Remote">
+        <label for="company-status">Current status</label>
+        <select id="company-status">
+          <option value="">Not applied</option>
+          <option value="applied">Applied</option>
+          <option value="interviewing">Interviewing</option>
+          <option value="rejected">Rejected</option>
+          <option value="offer">Offer received</option>
+        </select>
+        <label for="company-role">Role applied for</label>
+        <input type="text" id="company-role" placeholder="e.g. Delivery Manager">
+        <label for="company-info">Useful info discovered</label>
+        <textarea id="company-info" placeholder="Notes about the company, contacts, etc."></textarea>
         <div class="modal-actions">
           <button type="button" onclick="closeModal()">Cancel</button>
-          <button type="submit">Save company</button>
+          <button type="submit" id="modal-submit-btn">Save company</button>
         </div>
       </form>
     </div>
@@ -1162,24 +1321,24 @@
     const COMPANIES_KEY = 'jst_companies_v1';
 
     const DEFAULT_COMPANIES = [
-      { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'], lastClicked: null },
-      { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'], lastClicked: null },
-      { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'], lastClicked: null },
-      { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'], lastClicked: null },
-      { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'], lastClicked: null },
-      { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'], lastClicked: null },
-      { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'], lastClicked: null },
-      { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [], lastClicked: null },
-      { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [], lastClicked: null },
-      { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [], lastClicked: null },
-      { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [], lastClicked: null },
-      { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [], lastClicked: null },
-      { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [], lastClicked: null },
-      { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [], lastClicked: null },
-      { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [], lastClicked: null },
-      { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [], lastClicked: null },
-      { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [], lastClicked: null },
-      { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [], lastClicked: null },
+      { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+      { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
     ];
 
     function getTracker() { try { return JSON.parse(localStorage.getItem(TRACKER_KEY) || '{}'); } catch { return {}; } }
@@ -1200,19 +1359,68 @@
     function renderCompanies() {
       const companies = getCompanies();
       const grid = document.querySelector('.company-grid');
-      grid.innerHTML = companies.map(company => `
+      grid.innerHTML = companies.map((company, index) => `
         <div class="company-card">
           <div class="company-name">${company.name}</div>
           <div class="company-meta">${company.location}</div>
           ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
+          <div class="company-status status-${company.status || 'not-applied'}">${!company.status ? 'Not applied' : company.status === 'applied' ? 'Applied' : company.status === 'interviewing' ? 'Interviewing' : company.status === 'rejected' ? 'Rejected' : company.status === 'offer' ? 'Offer received' : 'Not applied'}</div>
           <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
           ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
+          <button class="expand-btn" onclick="toggleExpand(${index})">Show more info</button>
+          <div class="company-expanded" id="expanded-${index}">
+            <div class="expanded-field">
+              <label for="status-${index}">Current status</label>
+              <select id="status-${index}">
+                <option value="" ${!company.status ? 'selected' : ''}>Not applied</option>
+                <option value="applied" ${company.status === 'applied' ? 'selected' : ''}>Applied</option>
+                <option value="interviewing" ${company.status === 'interviewing' ? 'selected' : ''}>Interviewing</option>
+                <option value="rejected" ${company.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                <option value="offer" ${company.status === 'offer' ? 'selected' : ''}>Offer received</option>
+              </select>
+            </div>
+            <div class="expanded-field">
+              <label for="role-${index}">Role applied for</label>
+              <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="e.g. Delivery Manager">
+            </div>
+            <div class="expanded-field">
+              <label for="info-${index}">Useful info discovered</label>
+              <textarea id="info-${index}" placeholder="Notes about the company, contacts, etc.">${company.usefulInfo || ''}</textarea>
+            </div>
+            <button class="save-btn" onclick="saveCompanyInfo(${index})">Save changes</button>
+            ${company.lastUpdated ? `<div class="company-last-updated">Last updated: ${new Date(company.lastUpdated).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
+          </div>
+          <button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
           <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
         </div>
       `).join('');
     }
 
     function openAddCompanyModal() {
+      document.getElementById('modal-title').textContent = 'Add new company';
+      document.getElementById('modal-submit-btn').textContent = 'Save company';
+      document.getElementById('edit-index').value = '-1';
+      document.getElementById('add-company-modal').classList.add('active');
+      document.getElementById('company-name').focus();
+    }
+
+    function openEditCompanyModal(index) {
+      const companies = getCompanies();
+      const company = companies[index];
+      if (!company) return;
+
+      document.getElementById('modal-title').textContent = 'Edit company';
+      document.getElementById('modal-submit-btn').textContent = 'Update company';
+      document.getElementById('edit-index').value = index.toString();
+
+      document.getElementById('company-name').value = company.name;
+      document.getElementById('company-location').value = company.location;
+      document.getElementById('company-url').value = company.url;
+      document.getElementById('company-tags').value = company.tags.join(', ');
+      document.getElementById('company-status').value = company.status || '';
+      document.getElementById('company-role').value = company.roleApplied || '';
+      document.getElementById('company-info').value = company.usefulInfo || '';
+
       document.getElementById('add-company-modal').classList.add('active');
       document.getElementById('company-name').focus();
     }
@@ -1220,10 +1428,40 @@
     function closeModal() {
       document.getElementById('add-company-modal').classList.remove('active');
       document.getElementById('add-company-form').reset();
+      document.getElementById('modal-title').textContent = 'Add new company';
+      document.getElementById('modal-submit-btn').textContent = 'Save company';
+      document.getElementById('edit-index').value = '-1';
     }
 
     function removeCompany(name) {
       const companies = getCompanies().filter(c => c.name !== name);
+      saveCompanies(companies);
+      renderCompanies();
+    }
+
+    function toggleExpand(index) {
+      const expanded = document.getElementById(`expanded-${index}`);
+      const btn = expanded.previousElementSibling;
+      if (expanded.classList.contains('active')) {
+        expanded.classList.remove('active');
+        btn.textContent = 'Show more info';
+      } else {
+        expanded.classList.add('active');
+        btn.textContent = 'Hide more info';
+      }
+    }
+
+    function saveCompanyInfo(index) {
+      const companies = getCompanies();
+      const company = companies[index];
+      if (!company) return;
+      const status = document.getElementById(`status-${index}`).value;
+      const role = document.getElementById(`role-${index}`).value.trim();
+      const info = document.getElementById(`info-${index}`).value.trim();
+      company.status = status || null;
+      company.roleApplied = role;
+      company.usefulInfo = info;
+      company.lastUpdated = new Date().toISOString();
       saveCompanies(companies);
       renderCompanies();
     }
@@ -1560,9 +1798,30 @@
       const location = document.getElementById('company-location').value.trim();
       const url = document.getElementById('company-url').value.trim();
       const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
+      const status = document.getElementById('company-status').value || null;
+      const role = document.getElementById('company-role').value.trim();
+      const info = document.getElementById('company-info').value.trim();
       if (!name || !url) return;
+
       const companies = getCompanies();
-      companies.push({ name, location, url, tags, lastClicked: null });
+      const editIndex = parseInt(document.getElementById('edit-index').value);
+
+      if (editIndex >= 0 && editIndex < companies.length) {
+        // Edit existing company
+        const company = companies[editIndex];
+        company.name = name;
+        company.location = location;
+        company.url = url;
+        company.tags = tags;
+        company.status = status;
+        company.roleApplied = role;
+        company.usefulInfo = info;
+        // Don't reset lastClicked or lastUpdated
+      } else {
+        // Add new company
+        companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: info, lastUpdated: null });
+      }
+
       saveCompanies(companies);
       renderCompanies();
       closeModal();
