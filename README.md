@@ -59,3 +59,22 @@ Stored directly in the HTML file (not committed to any public repository).
 - [ ] GitHub Pages hosting (would also fix CORS permanently)
 - [ ] Prettify the company cards
 - [ ] Add sorting/filtering by tags
+
+## Workflow conventions
+
+- Use task IDs in commit messages: `JST-xx` (e.g. `JST-01: improve company card status`).
+- Include whether AI assistance was used: add `[ai-assisted]` in commit title if the change is generated or significantly guided by Claude Code.
+- Use feature branches for work: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`.
+
+## Backlog and planning
+
+- Project backlog is maintained in Notion:
+  https://www.notion.so/3374e11bd2e780a39a39d08511a763fd?v=3374e11bd2e780e48d85000c4add0599&source=copy_link
+- Add and prioritize tasks in Notion; keep the README and code comments aligned with the backlog state.
+
+## AI safeguard layer
+
+- Before committing any AI-generated change, run `git diff` and verify exactly what changed.
+- Ask: what did this change and why? If you can’t explain it clearly, do NOT commit yet.
+- For AI-assisted commits, include `[ai-assisted]` in the message and keep a short note in PR description or commit body about why the change is correct.
+- Keep the human reviewer in the loop: AI suggestions should be reviewed for correctness, clarity, security and style before merge.
