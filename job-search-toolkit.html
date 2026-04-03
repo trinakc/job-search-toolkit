@@ -960,9 +960,11 @@
       cursor: pointer;
     }
 
-    .remove-btn:hover {
-      color: var(--warn);
-      border-color: var(--warn);
+    .company-last-clicked {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--mono);
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -1160,24 +1162,24 @@
     const COMPANIES_KEY = 'jst_companies_v1';
 
     const DEFAULT_COMPANIES = [
-      { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'] },
-      { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'] },
-      { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'] },
-      { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'] },
-      { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'] },
-      { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'] },
-      { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'] },
-      { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [] },
-      { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [] },
-      { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [] },
-      { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [] },
-      { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [] },
-      { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [] },
-      { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [] },
-      { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [] },
-      { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [] },
-      { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [] },
-      { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [] },
+      { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'], lastClicked: null },
+      { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'], lastClicked: null },
+      { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'], lastClicked: null },
+      { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'], lastClicked: null },
+      { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'], lastClicked: null },
+      { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'], lastClicked: null },
+      { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'], lastClicked: null },
+      { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [], lastClicked: null },
+      { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [], lastClicked: null },
+      { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [], lastClicked: null },
+      { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [], lastClicked: null },
+      { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [], lastClicked: null },
+      { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [], lastClicked: null },
+      { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [], lastClicked: null },
+      { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [], lastClicked: null },
+      { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [], lastClicked: null },
+      { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [], lastClicked: null },
+      { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [], lastClicked: null },
     ];
 
     function getTracker() { try { return JSON.parse(localStorage.getItem(TRACKER_KEY) || '{}'); } catch { return {}; } }
@@ -1203,7 +1205,8 @@
           <div class="company-name">${company.name}</div>
           <div class="company-meta">${company.location}</div>
           ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
-          <a class="careers-link" href="${company.url}" target="_blank">${company.url.replace('https://', '').split('/')[0]} →</a>
+          <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
+          ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
           <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
         </div>
       `).join('');
@@ -1223,6 +1226,17 @@
       const companies = getCompanies().filter(c => c.name !== name);
       saveCompanies(companies);
       renderCompanies();
+    }
+
+    function trackCompanyClick(name, url) {
+      const companies = getCompanies();
+      const company = companies.find(c => c.name === name);
+      if (company) {
+        company.lastClicked = new Date().toISOString();
+        saveCompanies(companies);
+        renderCompanies();
+      }
+      window.open(url, '_blank');
     }
 
     function updateTrackerNav() {
@@ -1548,7 +1562,7 @@
       const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
       if (!name || !url) return;
       const companies = getCompanies();
-      companies.push({ name, location, url, tags });
+      companies.push({ name, location, url, tags, lastClicked: null });
       saveCompanies(companies);
       renderCompanies();
       closeModal();
