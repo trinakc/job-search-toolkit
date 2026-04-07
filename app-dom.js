@@ -74,7 +74,17 @@ function renderCompanies() {
     return;
   }
 
-  grid.innerHTML = companies.map((company, index) => `
+  // Look up the real index of each company in the full unfiltered array.
+  // The rendered `companies` array is filtered/sorted, so its map position no
+  // longer matches getCompanies() positions. All onclick handlers that write back
+  // to localStorage (openEditCompanyModal, saveCompanyInfo, toggleExpand) receive
+  // this real index so they operate on the correct entry regardless of sort/filter.
+  const allCompanies = getCompanies();
+
+  grid.innerHTML = companies.map((company) => {
+    // findIndex by name — names are unique identifiers throughout the codebase
+    const index = allCompanies.findIndex(c => c.name === company.name);
+    return `
         <div class="company-card">
           <div class="company-name">${company.name}</div>
           <div class="company-meta">${company.location}</div>
@@ -108,7 +118,8 @@ function renderCompanies() {
           <button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
           <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
         </div>
-      `).join('');
+      `;
+  }).join('');
 }
 
 function renderAlerts() {

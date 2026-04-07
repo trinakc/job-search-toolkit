@@ -158,7 +158,36 @@ test('date filter hides companies checked within the threshold', async ({ page }
   expect(names).toContain('Gamma GmbH');    // never checked — always included
 });
 
-// ─── Test 8: Sort works on a filtered set ────────────────────────────────────
+// ─── Test 8: Edit/expand operate on the correct company after sort/filter ────
+// Regression test for the bug where rendered card index was passed directly to
+// openEditCompanyModal() and saveCompanyInfo(). After filtering, card position 0
+// no longer corresponds to getCompanies()[0], so using the map index would open
+// the wrong company's data in the modal.
+//
+// This test applies a tag filter so that Alpha Corp is the first (and only)
+// rendered card, then clicks its Edit button. The modal must show Alpha Corp's
+// name — not Gamma GmbH's (which is getCompanies()[0] in insertion order).
+test('clicking Edit after filtering opens the correct company, not the one at that array position', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Gamma GmbH is first in the fixture array (insertion order).
+  // After filtering for 'Delivery' (only Alpha Corp has it), Alpha Corp
+  // will be at rendered position 0. If the bug is present, clicking Edit
+  // on that card would open Gamma GmbH's data instead.
+  await page.selectOption('#company-tag-filter', 'Delivery');
+
+  // Only Alpha Corp should be visible after the filter
+  const names = await getVisibleCompanyNames(page);
+  expect(names).toEqual(['Alpha Corp']);
+
+  // Click the Edit button on the first (only) visible card
+  await page.locator('.edit-btn').first().click();
+
+  // The modal must show Alpha Corp's name, not Gamma GmbH's
+  await expect(page.locator('#company-name')).toHaveValue('Alpha Corp');
+});
+
+// ─── Test 9: Sort works on a filtered set ────────────────────────────────────
 // After filtering to 'EM' (Alpha + Beta), switching sort should reorder those
 // two cards without re-introducing Gamma or losing either Alpha or Beta.
 test('sort works correctly on a filtered set', async ({ page }) => {
