@@ -70,18 +70,15 @@ See `config.template.js` for all available options.
 
 ## Security
 
-**API keys and personal information** are stored in `config.js`, which is git-ignored and never 
-committed. A `config.template.js` is provided as a safe reference. Never commit `config.js`.
+**API keys and personal information** are stored in `config.js`, which is **git-ignored** and never committed to version control. A `config.template.js` is provided as a safe reference. This prevents accidental exposure of sensitive keys and personal data if the repo ever becomes public.
 
-**Secret detection** — `eslint-plugin-no-secrets` runs as part of `npm run lint:js` and is 
-enforced in CI, catching accidentally committed tokens or keys before they reach the repo.
+**Secret detection** — `eslint-plugin-no-secrets` runs as part of `npm run lint:js` and is enforced in CI, catching accidentally committed high-entropy tokens, keys, and secrets in JS and HTML files. This is a developer-time safeguard to help prevent accidental secret leaks in source code.
 
-**Dependency vulnerabilities** — Dependabot is enabled via GitHub settings with alerts and 
-automatic security updates active.
+**Dependency vulnerabilities** — Dependabot is enabled via GitHub settings with alerts and automatic security updates active.
 
 **GitHub security features** — Secret scanning is enabled at the repository level.
 
-## Development practices
+**Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Adzuna API.
 
 ### Testing
 All new features should have unit tests written before or alongside the implementation.

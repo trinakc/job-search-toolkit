@@ -76,7 +76,8 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     const editIndex = parseInt(document.getElementById('edit-index').value);
 
     if (editIndex >= 0 && editIndex < companies.length) {
-      // Edit existing company
+      // Edit existing company: Update mutable fields while preserving tracking metadata
+      // (lastClicked and lastUpdated are set by UI interactions, not form submission)
       const company = companies[editIndex];
       company.name = name;
       company.location = location;
@@ -85,9 +86,8 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
       company.status = status;
       company.roleApplied = role;
       company.usefulInfo = info;
-      // Don't reset lastClicked or lastUpdated
     } else {
-      // Add new company
+      // Add new company: Initialize with null tracking metadata (set on first interaction)
       companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: info, lastUpdated: null });
     }
 
@@ -104,7 +104,9 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
   });
 
-  // Handle feature flags - hide disabled features and disabled panels
+  // Feature flag initialization: Hide UI elements for disabled features
+  // This keeps the app flexible—disabled features remain in HTML but are invisible
+  // Enable features by toggling FEATURES object in app.js; no DOM changes needed
   Object.keys(FEATURES).forEach(feature => {
     const navBtn = document.querySelector(`nav button[onclick*="show('${feature}'"]`);
     const panel = document.getElementById(feature);
@@ -114,7 +116,8 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     }
   });
 
-  // Ensure the default landing page is driven by code, not hardcoded DOM classes.
+  // Initialize landing page: Use function-driven default tab based on enabled features
+  // (not hardcoded "active" class) to ensure the UI always reflects feature flags
   const defaultTab = getDefaultTab();
   const defaultButton = document.querySelector(`nav button[onclick*="show('${defaultTab}'"]`);
   if (defaultButton) {
