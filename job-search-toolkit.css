@@ -1104,3 +1104,56 @@ textarea:focus {
   margin-top: 8px;
 }
   
+
+/* ─── Company sort/filter controls ──────────────────────────────────────────── */
+
+/* Row containing all three controls and the reset button */
+.company-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+/* Each label + select pair */
+.company-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Small uppercase label above each control — matches nav-label style */
+.control-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+/* Reset button — low visual weight, sits inline with the controls */
+.company-controls-reset {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.company-controls-reset:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* Count of visible vs total cards — shown only when a filter is active */
+.company-count {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text3);
+  margin-bottom: 0.75rem;
+}

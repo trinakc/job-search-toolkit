@@ -1,9 +1,79 @@
 // DOM-related functions for app.js
 // This file is loaded after app.js in the HTML
 
+// ─── renderCompanyTagOptions ──────────────────────────────────────────────────
+// Populates the tag filter <select> with every unique tag across all companies.
+// Called once when the companies panel first loads.
+// Preserves the currently selected value so re-renders don't reset the control.
+function renderCompanyTagOptions() {
+  const select = document.getElementById('company-tag-filter');
+  if (!select) return;
+
+  const currentValue = select.value;
+
+  // Collect every unique tag from all companies, sorted alphabetically
+  const allTags = [...new Set(
+    getCompanies().flatMap(c => c.tags)
+  )].sort((a, b) => a.localeCompare(b));
+
+  // Rebuild options — "All tags" placeholder plus one option per unique tag
+  select.innerHTML = '<option value="">All tags</option>' +
+    allTags.map(tag => `<option value="${tag}">${tag}</option>`).join('');
+
+  // Restore previously selected value if it still exists in the new option list
+  if (currentValue) select.value = currentValue;
+}
+
+// ─── resetCompanyControls ─────────────────────────────────────────────────────
+// Resets all three sort/filter controls to their defaults and re-renders.
+// Called by the Reset button in the company panel.
+function resetCompanyControls() {
+  const sort       = document.getElementById('company-sort');
+  const tagFilter  = document.getElementById('company-tag-filter');
+  const dateFilter = document.getElementById('company-date-filter');
+  if (sort)       sort.value       = 'alpha-asc';
+  if (tagFilter)  tagFilter.value  = '';
+  if (dateFilter) dateFilter.value = '';
+  renderCompanies();
+}
+
+// ─── renderCompanies ──────────────────────────────────────────────────────────
+// Reads the current sort/filter control values, applies them to the company list,
+// and re-renders the grid. Called on page load and whenever a control changes.
 function renderCompanies() {
-  const companies = getCompanies();
+  // Read current control values — default to safe values if controls don't exist
+  // (e.g. during initial page load before the DOM is fully ready)
+  const sortKey    = (document.getElementById('company-sort')        || {}).value || 'alpha-asc';
+  const tagFilter  = (document.getElementById('company-tag-filter')  || {}).value || '';
+  const daysAgo    = (document.getElementById('company-date-filter') || {}).value || '';
+
+  // Build the display list: filter first, then sort the filtered set
+  const filtered = filterCompanies(getCompanies(), {
+    tag:     tagFilter  || undefined,
+    daysAgo: daysAgo    ? parseInt(daysAgo, 10) : undefined,
+  });
+  const companies = sortCompanies(filtered, sortKey);
+
+  // Populate tag options from the full unfiltered list (so available tags don't
+  // shrink as a tag filter is applied — that would make it impossible to change)
+  renderCompanyTagOptions();
+
+  // Update the visible count so the user knows how many cards are showing
+  const countEl = document.getElementById('company-count');
+  if (countEl) {
+    const total = getCompanies().length;
+    countEl.textContent = companies.length === total
+      ? ''
+      : `Showing ${companies.length} of ${total}`;
+  }
+
   const grid = document.querySelector('.company-grid');
+  // Show an empty state message if filters match nothing, rather than a blank grid
+  if (!companies.length) {
+    grid.innerHTML = '<div class="empty-state">No companies match the current filters.</div>';
+    return;
+  }
+
   grid.innerHTML = companies.map((company, index) => `
         <div class="company-card">
           <div class="company-name">${company.name}</div>

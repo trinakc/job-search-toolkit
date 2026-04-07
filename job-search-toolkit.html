@@ -112,6 +112,50 @@
         <h2>Company tracker</h2>
         <p class="panel-desc">Track target companies, save application status, and keep useful notes for each employer.</p>
         <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
+
+        <!-- Sort and filter controls — values are read by renderCompanies() on every render.
+             No state is persisted to localStorage; controls reset on page reload. -->
+        <div class="company-controls">
+
+          <!-- Sort: controls the order cards appear in the grid -->
+          <div class="company-control-group">
+            <label for="company-sort" class="control-label">Sort</label>
+            <select id="company-sort" onchange="renderCompanies()">
+              <option value="alpha-asc">A → Z</option>
+              <option value="alpha-desc">Z → A</option>
+              <option value="date-asc">Last checked (oldest first)</option>
+              <option value="date-desc">Last checked (newest first)</option>
+            </select>
+          </div>
+
+          <!-- Tag filter: populated dynamically from tags present in the company list -->
+          <div class="company-control-group">
+            <label for="company-tag-filter" class="control-label">Tag</label>
+            <select id="company-tag-filter" onchange="renderCompanies()">
+              <option value="">All tags</option>
+              <!-- Options injected by renderCompanyTagOptions() in app-dom.js -->
+            </select>
+          </div>
+
+          <!-- Date filter: hides companies checked within the last N days.
+               Companies never checked (lastClicked = null) are always shown. -->
+          <div class="company-control-group">
+            <label for="company-date-filter" class="control-label">Last checked</label>
+            <select id="company-date-filter" onchange="renderCompanies()">
+              <option value="">Any time</option>
+              <option value="7">Not in 7 days</option>
+              <option value="14">Not in 14 days</option>
+              <option value="30">Not in 30 days</option>
+            </select>
+          </div>
+
+          <!-- Resets all three controls to their defaults and re-renders -->
+          <button class="company-controls-reset" onclick="resetCompanyControls()">Reset</button>
+        </div>
+
+        <!-- Count of visible cards, updated by renderCompanies() after filter is applied -->
+        <div id="company-count" class="company-count"></div>
+
         <div class="company-grid"></div>
       </div>
 
