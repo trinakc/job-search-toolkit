@@ -91,20 +91,36 @@ See `config.template.js` for all available options.
 **Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Adzuna API.
 
 ### Testing
-All new features should have unit tests written before or alongside the implementation.
-Tests live in `app.test.js` and are run with `npm test`.
 
-**What to test:**
+There are two test layers:
+
+**Unit tests (Jest)** — cover pure functions in `app.js`: input/output logic, localStorage reads and writes, and conditional branching. Tests live in `app.test.js`.
+
+```bash
+npm test
+```
+
+**What to unit test:**
 - Functions that take input and return output
 - Functions that read from or write to localStorage
 - Functions containing conditional logic
 
-**What not to test:**
-- Functions that only manipulate the DOM
+**What not to unit test:**
+- Functions that only manipulate the DOM (use Playwright for those)
 
-Run tests locally before committing:
+**UI smoke tests (Playwright)** — end-to-end tests that run against the real page in a browser. They verify that the page loads, navigation works, the company grid renders, the add-company modal saves correctly, and that localStorage data persists across page reloads. Tests live in `tests/e2e/smoke.spec.js` and run in Chromium.
 
-npm test
+```bash
+npm run test:e2e
+```
+
+The server starts automatically before the tests and stops when they finish (configured via `webServer` in `playwright.config.js`). Requires Python 3 on your PATH.
+
+Run both locally before committing:
+
+```bash
+npm test && npm run test:e2e
+```
 
 ### Working with Claude Code
 When requesting a new feature, always include testing in the prompt:

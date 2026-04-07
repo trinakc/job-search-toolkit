@@ -7,10 +7,12 @@
     "lint:js": "eslint app.js",
     "lint:css": "stylelint job-search-toolkit.html",
     "lint": "npm run lint:js && npm run lint:css",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test"
   },
   "jest": {
-    "testEnvironment": "jsdom"
+    "testEnvironment": "jsdom",
+    "testPathIgnorePatterns": ["/node_modules/", "/tests/e2e/"]
   },
   "repository": {
     "type": "git",
@@ -26,6 +28,7 @@
   "homepage": "https://github.com/trinakc/job-search-toolkit#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "eslint": "^10.1.0",
     "eslint-plugin-html": "^8.1.4",
     "eslint-plugin-no-secrets": "^2.3.3",

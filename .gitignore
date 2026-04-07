@@ -22,3 +22,7 @@ dist/
 build/
 
 node_modules/
+
+# Playwright test output — generated locally and in CI, not needed in source control
+test-results/
+playwright-report/

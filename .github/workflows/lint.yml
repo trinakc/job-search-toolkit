@@ -28,3 +28,19 @@ jobs:
       - run: npm ci
       - name: Run Jest
         run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      # Install only Chromium — matches the single browser configured in playwright.config.js.
+      # --with-deps installs the OS-level libraries Chromium needs on ubuntu-latest.
+      - run: npx playwright install --with-deps chromium
+      # Python 3 is pre-installed on ubuntu-latest, so no setup step is needed
+      # for the 'python -m http.server 8000' webServer command in playwright.config.js.
+      - name: Run Playwright tests
+        run: npm run test:e2e
