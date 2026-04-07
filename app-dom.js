@@ -129,5 +129,4 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
   updateTrackerNav();
   renderCompanies();
   renderAlerts();
-}</content>
-<parameter name="filePath">c:\Users\trina\Desktop\job-search-toolkit\app-dom.js
+}
