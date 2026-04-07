@@ -1125,15 +1125,10 @@
 
   <div class="layout">
     <nav>
-      <div class="nav-label">Live search</div>
-      <button class="active" onclick="show('jobs', this)">Live jobs</button>
-      <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
-      <div class="nav-divider"></div>
-      <div class="nav-label">Reference</div>
-      <button onclick="show('companies', this)">Target companies</button>
-      <button onclick="show('alerts', this)">Google alerts</button>
-      <div class="nav-divider"></div>
       <div class="nav-label">Tools</div>
+      <button onclick="show('companies', this)">Company tracker</button>
+      <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
+      <button onclick="show('alerts', this)">Google alerts</button>
       <button onclick="show('scorer', this)">Job fit scorer</button>
     </nav>
 
@@ -1211,9 +1206,8 @@
       </div>
 
       <div id="companies" class="panel">
-        <h2>Target companies</h2>
-        <p class="panel-desc">Enterprise SaaS companies with Irish offices. Roles often appear on these pages before
-          hitting aggregators.</p>
+        <h2>Company tracker</h2>
+        <p class="panel-desc">Track target companies, save application status, and keep useful notes for each employer.</p>
         <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
         <div class="company-grid"></div>
       </div>
