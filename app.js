@@ -1,9 +1,24 @@
-/* global API_CONFIG */
+/* global API_CONFIG, renderCompanies, renderAlerts */
 /* eslint-disable no-unused-vars */
 // API credentials are loaded from config.js (git-ignored)
 // If not available, show setup instructions
 if (typeof API_CONFIG === 'undefined') {
   console.warn('API_CONFIG not loaded. Please copy config.template.js to config.js and add your API keys.');
+}
+
+// Feature flags for major panels/features
+// Set to false to disable/hide features that are broken or non-functional
+const FEATURES = {
+  jobs: true,      // Live job search
+  tracker: true,   // Job tracker
+  companies: true, // Target companies
+  alerts: false,   // Google alerts (has hardcoded personal search strings)
+  scorer: false    // Job fit scorer (has hardcoded personal profile)
+};
+
+// Function to check if a feature is enabled
+function isFeatureEnabled(feature) {
+  return FEATURES.hasOwnProperty(feature) && FEATURES[feature] !== false; /* eslint-disable-line no-prototype-builtins */
 }
 
 const AID = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_ID) ? API_CONFIG.ADZUNA_APP_ID : '';
@@ -47,46 +62,6 @@ function getCompanies() {
   return companies;
 }
 function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
-
-function renderCompanies() {
-  const companies = getCompanies();
-  const grid = document.querySelector('.company-grid');
-  grid.innerHTML = companies.map((company, index) => `
-        <div class="company-card">
-          <div class="company-name">${company.name}</div>
-          <div class="company-meta">${company.location}</div>
-          ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
-          <div class="company-status status-${company.status || 'not-applied'}">${!company.status ? 'Not applied' : company.status === 'applied' ? 'Applied' : company.status === 'interviewing' ? 'Interviewing' : company.status === 'rejected' ? 'Rejected' : company.status === 'offer' ? 'Offer received' : 'Not applied'}</div>
-          <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
-          ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
-          <button class="expand-btn" onclick="toggleExpand(${index})">Show more info</button>
-          <div class="company-expanded" id="expanded-${index}">
-            <div class="expanded-field">
-              <label for="status-${index}">Current status</label>
-              <select id="status-${index}">
-                <option value="" ${!company.status ? 'selected' : ''}>Not applied</option>
-                <option value="applied" ${company.status === 'applied' ? 'selected' : ''}>Applied</option>
-                <option value="interviewing" ${company.status === 'interviewing' ? 'selected' : ''}>Interviewing</option>
-                <option value="rejected" ${company.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                <option value="offer" ${company.status === 'offer' ? 'selected' : ''}>Offer received</option>
-              </select>
-            </div>
-            <div class="expanded-field">
-              <label for="role-${index}">Role applied for</label>
-              <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="e.g. Delivery Manager">
-            </div>
-            <div class="expanded-field">
-              <label for="info-${index}">Useful info discovered</label>
-              <textarea id="info-${index}" placeholder="Notes about the company, contacts, etc.">${company.usefulInfo || ''}</textarea>
-            </div>
-            <button class="save-btn" onclick="saveCompanyInfo(${index})">Save changes</button>
-            ${company.lastUpdated ? `<div class="company-last-updated">Last updated: ${new Date(company.lastUpdated).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
-          </div>
-          <button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
-          <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
-        </div>
-      `).join('');
-}
 
 function openAddCompanyModal() {
   document.getElementById('modal-title').textContent = 'Add new company';
@@ -177,12 +152,14 @@ function updateTrackerNav() {
 }
 
 function show(id, btn) {
+  if (!isFeatureEnabled(id)) return;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   if (id === 'tracker') renderTracker();
   if (id === 'companies') renderCompanies();
+  if (id === 'alerts') renderAlerts();
 }
 
 function copyAlert(btn, text) {
@@ -441,7 +418,7 @@ async function scoreJob() {
   btn.disabled = true; btn.textContent = 'Analysing...';
   result.innerHTML = '<div class="loading-state"><div class="spinner"></div>Reading the job description...</div>';
 
-  const profile = `Trina is a Delivery Manager and Agile practitioner based in County Limerick, Ireland, open to hybrid roles in Dublin or Cork (max 2 days onsite) or fully remote. Engineering Manager at QAD Inc (2024-2026): led globally distributed team, owned cross-functional delivery of observability frameworks and DevOps tooling, interim Product Owner, managed strategic pivots. Previous: Principal QA Engineer & Scrum Master, Senior QA Analyst & Scrum Master (QAD). Technical: AWS (EKS, RDS, EC2), Kubernetes, Docker, GitLab CI/CD, Bamboo, Bash, Python, SQL, Linux. Delivery: Scrum, Kanban, cross-functional programme coordination, risk and dependency management, stakeholder management. Certifications: CSM (Scrum Alliance 2021), PRINCE2 Foundation 7th ed (PeopleCert 2026). BSc Computer Systems, University of Limerick. Targeting: Delivery Manager, Engineering Manager, Technical Project Manager, Scrum Master in Enterprise SaaS/software.`;
+  const profile = (typeof API_CONFIG !== 'undefined' && API_CONFIG.PROFILE_SUMMARY) ? API_CONFIG.PROFILE_SUMMARY : 'Add your professional summary in config.js';
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -485,55 +462,8 @@ async function scoreJob() {
   }
   btn.disabled = false; btn.textContent = 'Analyse fit';
 }
-if (typeof window !== 'undefined' && document.getElementById('add-company-form')) {
-  document.getElementById('add-company-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('company-name').value.trim();
-    const location = document.getElementById('company-location').value.trim();
-    const url = document.getElementById('company-url').value.trim();
-    const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
-    const status = document.getElementById('company-status').value || null;
-    const role = document.getElementById('company-role').value.trim();
-    const info = document.getElementById('company-info').value.trim();
-    if (!name || !url) return;
-
-    const companies = getCompanies();
-    const editIndex = parseInt(document.getElementById('edit-index').value);
-
-    if (editIndex >= 0 && editIndex < companies.length) {
-      // Edit existing company
-      const company = companies[editIndex];
-      company.name = name;
-      company.location = location;
-      company.url = url;
-      company.tags = tags;
-      company.status = status;
-      company.roleApplied = role;
-      company.usefulInfo = info;
-      // Don't reset lastClicked or lastUpdated
-    } else {
-      // Add new company
-      companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: info, lastUpdated: null });
-    }
-
-    saveCompanies(companies);
-    renderCompanies();
-    closeModal();
-  });
-
-  document.getElementById('add-company-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'add-company-modal') closeModal();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
-  });
-
-  updateTrackerNav();
-  renderCompanies();
-}
 
 if (typeof module !== 'undefined') {
   /* eslint-disable-next-line no-undef */
-  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote };
+  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote, isFeatureEnabled };
 }
