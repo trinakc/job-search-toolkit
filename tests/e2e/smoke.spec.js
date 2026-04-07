@@ -26,25 +26,21 @@ test('page loads and title is correct', async ({ page }) => {
 // Verifies that clicking a nav button switches the visible panel.
 //
 // The app uses feature flags (FEATURES in app.js) to hide disabled panels.
-// At the time of writing, only 'companies' and 'tracker' are enabled.
-// The default landing panel is 'companies' (set by getDefaultTab() in app.js).
+// Currently only 'companies' is enabled. The tracker panel is hidden because
+// it is only useful when live search is enabled (it is populated via "+ Track"
+// in the live jobs panel). The default landing panel is 'companies'.
 //
-// Clicking "My tracker" should:
-//   - show the #tracker panel
-//   - hide the #companies panel
-test('navigation works — clicking between panels shows the correct content', async ({ page }) => {
+// This test also verifies that the tracker nav button is hidden — confirming
+// the feature flag is working correctly.
+test('navigation works — default panel is visible, disabled panels are hidden', async ({ page }) => {
   await page.goto(APP_URL);
 
   // Company tracker is the default tab — it must be visible immediately on load
   await expect(page.locator('#companies')).toBeVisible();
 
-  // Click the My tracker nav button (identified by its stable id, not text,
-  // because the text changes to "My tracker (N)" when there are tracked items)
-  await page.locator('#tracker-nav-btn').click();
-
-  // Tracker panel should now be visible; companies panel should be hidden
-  await expect(page.locator('#tracker')).toBeVisible();
-  await expect(page.locator('#companies')).not.toBeVisible();
+  // The tracker nav button should be hidden — FEATURES.tracker is false because
+  // the tracker is only useful when live search is enabled
+  await expect(page.locator('#tracker-nav-btn')).not.toBeVisible();
 });
 
 // ─── Test 3: Company grid renders ────────────────────────────────────────────
@@ -95,13 +91,11 @@ test('add company modal opens and saves a new company correctly', async ({ page 
 // ─── Test 5: localStorage persistence ────────────────────────────────────────
 // Verifies that tracker data written to localStorage survives a full page reload.
 //
-// The Live jobs panel (which populates the tracker via "+ Track") is disabled by
-// default (FEATURES.jobs = false in app.js), so we seed localStorage directly
-// using page.evaluate() to simulate a tracked job without needing a live API.
-//
-// After reload, navigating to "My tracker" should show the seeded job title —
-// confirming that renderTracker() reads from localStorage correctly on init.
-test('job tracker items persist after page reload', async ({ page }) => {
+// The tracker panel is hidden (FEATURES.tracker = false) because it is only
+// useful when live search is enabled. We can still verify localStorage
+// persistence by seeding data via page.evaluate(), reloading, and reading the
+// value back — without needing to interact with the hidden tracker UI.
+test('job tracker data persists in localStorage after page reload', async ({ page }) => {
   await page.goto(APP_URL);
 
   // Seed a tracker entry directly in localStorage.
@@ -120,12 +114,13 @@ test('job tracker items persist after page reload', async ({ page }) => {
     localStorage.setItem('jst_tracker_v1', JSON.stringify({ 'smoke-test-job-001': entry }));
   });
 
-  // Reload the page — this forces the app to re-initialise from localStorage
+  // Reload the page — forces the app to re-initialise from localStorage
   await page.reload();
 
-  // Navigate to the My tracker panel
-  await page.locator('#tracker-nav-btn').click();
-
-  // The seeded job title should be visible in the rendered tracker list
-  await expect(page.locator('#tracker-content')).toContainText('Playwright Smoke Test Job');
+  // Read localStorage back directly and confirm the entry survived the reload.
+  // We verify via localStorage rather than the UI because the tracker panel
+  // is hidden while live search is disabled.
+  const stored = await page.evaluate(() => localStorage.getItem('jst_tracker_v1'));
+  const parsed = JSON.parse(stored);
+  expect(parsed['smoke-test-job-001'].title).toBe('Playwright Smoke Test Job');
 });
