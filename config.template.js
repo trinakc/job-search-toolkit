@@ -22,6 +22,7 @@ const API_CONFIG = {
   // Personal information for customization
   HEADER_INFO: 'Your Job Title · Your Location · 2024', // e.g. 'Delivery Manager · County Limerick · 2024' - displayed in the header
   PROFILE_SUMMARY: 'Add your professional summary here. Include your current role, experience, and what you\'re looking for.', // Used by the job fit scorer
+  ROLE_PLACEHOLDER: 'e.g. Job Title', // Placeholder text for role input fields
   ALERT_STRINGS: [
     { name: 'Role 1 — Location', string: '"Role Name" Location keywords' },
     { name: 'Role 2 — Location', string: '"Another Role" Location keywords' },

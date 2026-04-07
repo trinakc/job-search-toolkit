@@ -26,7 +26,7 @@ function renderCompanies() {
             </div>
             <div class="expanded-field">
               <label for="role-${index}">Role applied for</label>
-              <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="e.g. Delivery Manager">
+              <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="${(typeof API_CONFIG !== 'undefined' && API_CONFIG.ROLE_PLACEHOLDER) ? API_CONFIG.ROLE_PLACEHOLDER : 'e.g. Job Title'}">
             </div>
             <div class="expanded-field">
               <label for="info-${index}">Useful info discovered</label>
