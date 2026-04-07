@@ -44,11 +44,21 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
 
 ### Run locally
 
-Start a local server to avoid CORS issues:
+A local server is required to avoid CORS errors that occur when the file is opened directly via `file://`.
+
+**Mac / Linux**
 ```bash
 python -m http.server 8000
 ```
 Then open `http://localhost:8000/job-search-toolkit.html`
+
+**Windows**
+
+Double-click `start-server.bat` in the repo root, or run it from a terminal:
+```bat
+.\start-server.bat
+```
+The script opens the toolkit in your default browser and starts the Python server in one step. Python 3 must be installed and on your PATH.
 
 ## Known issues
 
