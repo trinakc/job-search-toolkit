@@ -74,9 +74,8 @@ API credentials and personal information are stored in `config.js`, which is **g
 This prevents accidental exposure of sensitive keys and personal data if the repo ever becomes public.
 The repository also uses `eslint-plugin-no-secrets` as part of `npm run lint:js` to catch high-entropy tokens, keys, and secrets in JS and HTML files. 
 This is a safeguard to help prevent accidental secret leaks in source code.
-Always keep `config.js` local and never commit it.
 
-## Development practices
+A Content Security Policy (CSP) is configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Adzuna API.
 
 ### Testing
 All new features should have unit tests written before or alongside the implementation.
