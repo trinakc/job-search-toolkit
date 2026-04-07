@@ -1,6 +1,11 @@
 # Job Search Toolkit
 
-A customizable single-file HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.
+<!-- CI badge: reflects the last run of the full CI pipeline (lint, Jest, Playwright)
+     against the main branch. Powered by GitHub Actions — updates automatically on every push.
+     Badge URL format: https://github.com/<owner>/<repo>/actions/workflows/<filename>/badge.svg -->
+[![CI](https://github.com/trinakc/job-search-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/trinakc/job-search-toolkit/actions/workflows/ci.yml)
+
+A customizable HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.
 
 ## What it does
 
@@ -19,7 +24,16 @@ A customizable single-file HTML job search dashboard for tracking applications, 
 
 ## Tech
 
-Single HTML file — no framework, no build step, no dependencies except:
+No framework, no build step. The app is split across a small number of files:
+
+- `job-search-toolkit.html` — markup and structure
+- `job-search-toolkit.css` — all styles
+- `app.js` — application logic (state, localStorage, API calls, feature flags)
+- `app-dom.js` — DOM rendering functions (loaded after app.js)
+- `config.js` — your personal API keys and profile settings (git-ignored, not committed)
+- `config.template.js` — safe reference template for config.js
+
+External dependencies:
 - Google Fonts (DM Sans, DM Mono) — loaded from CDN
 - Adzuna Jobs API — for live Irish job listings
 - Anthropic API (claude-sonnet-4-20250514) — for job fit scoring
@@ -31,7 +45,7 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
 ### Get API keys
 
 1. **Adzuna Jobs API**: Register at https://developer.adzuna.com/ to get your App ID and Key.
-2. **Anthropic API**: The Job Fit Scorer currently uses claude.ai web interface; no local key needed unless you add direct API access.
+2. **Anthropic API**: Required for the Job Fit Scorer. Get a key at https://console.anthropic.com/ and add it to `config.js`.
 
 ### Configure locally
 
@@ -64,7 +78,6 @@ The script opens the toolkit in your default browser and starts the Python serve
 
 - Adzuna Ireland (`/ie/`) endpoint access pending confirmation from Adzuna support
 - Live Search is disabled by default via `FEATURES.jobs` in `app.js`; enable it once the Adzuna integration is stable.
-- CORS issues may occur if file is opened directly as `file://` (use local server instead)
 
 ## Configuration
 
@@ -90,7 +103,7 @@ See `config.template.js` for all available options.
 
 **Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Adzuna API.
 
-### Testing
+## Testing
 
 There are two test layers:
 
@@ -122,26 +135,45 @@ Run both locally before committing:
 npm test && npm run test:e2e
 ```
 
-### Working with Claude Code
+## CI
+
+The CI pipeline runs automatically on every push to `main`, `feature/**`, `bugfix/**`, and `hotfix/**` branches, and on all pull requests to `main`. It runs three jobs in parallel:
+
+| Job | Command | What it checks |
+|---|---|---|
+| `lint` | `npm run lint:js` | ESLint rules and secret detection on JS/HTML |
+| `test` | `npm test` | Jest unit tests |
+| `e2e` | `npm run test:e2e` | Playwright smoke tests in Chromium |
+
+The badge at the top of this file reflects the last completed run against `main`. Green means all three jobs passed.
+
+Configuration lives in `.github/workflows/ci.yml`.
+
+## Working with Claude Code
+
 When requesting a new feature, always include testing in the prompt:
 
 > "Before writing any code, write the unit tests first that describe the expected behaviour. Then implement the feature to make those tests pass."
 
 Read the tests before reading the implementation — if the tests don't clearly describe the expected behaviour in plain English, ask Claude Code to rewrite them before proceeding.
 
-### Commits and branching
-- Use Notion ticket numbers in commit messages: `JST-xx: description`
-- Tag AI-generated commits: `JST-xx: description [ai-assisted]`
-- Use feature branches: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`
+## Commits and branching
 
-### AI involvement tracking
+- Use Notion ticket numbers in commit messages: `JST-xx: description`
+- Use feature branches: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`
+- AI-generated commits include a `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` trailer
+
+## AI involvement tracking
+
 Tracked on the [Notion project board](https://www.notion.so/3374e11bd2e780a39a39d08511a763fd?v=3374e11bd2e780e48d85000c4add0599):
 - **Generated** — Claude Code wrote the bulk of the code
 - **Assisted** — human-directed with AI support
 - **None** — written without AI involvement
 
-### Before committing
+## Before committing
+
 - Run `npm run lint:js` — confirm no errors
-- Run `npm test` — confirm all tests pass
+- Run `npm test` — confirm all Jest tests pass
+- Run `npm run test:e2e` — confirm all Playwright smoke tests pass
 - Run `git diff` — read every change and be able to explain what it does and why
 - If you can't explain a change clearly, don't commit it — ask Claude Code to explain first
