@@ -70,11 +70,16 @@ See `config.template.js` for all available options.
 
 ## Security
 
-API credentials and personal information are stored in `config.js`, which is **git-ignored** and never committed to version control. 
-This prevents accidental exposure of sensitive keys and personal data if the repo ever becomes public.
-The repository also uses `eslint-plugin-no-secrets` as part of `npm run lint:js` to catch high-entropy tokens, keys, and secrets in JS and HTML files. 
-This is a safeguard to help prevent accidental secret leaks in source code.
-Always keep `config.js` local and never commit it.
+**API keys and personal information** are stored in `config.js`, which is git-ignored and never 
+committed. A `config.template.js` is provided as a safe reference. Never commit `config.js`.
+
+**Secret detection** — `eslint-plugin-no-secrets` runs as part of `npm run lint:js` and is 
+enforced in CI, catching accidentally committed tokens or keys before they reach the repo.
+
+**Dependency vulnerabilities** — Dependabot is enabled via GitHub settings with alerts and 
+automatic security updates active.
+
+**GitHub security features** — Secret scanning is enabled at the repository level.
 
 ## Development practices
 
