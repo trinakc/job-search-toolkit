@@ -10,9 +10,9 @@ if (typeof API_CONFIG === 'undefined') {
 // Set to false to disable/hide features that are broken or non-functional
 // This allows the app to gracefully handle incomplete features by hiding them
 const FEATURES = {
-  jobs: true,      // Live job search - working
+  jobs: false,     // Live job search - disabled until API and UI are stable
   tracker: true,   // Job tracker - working
-  companies: true, // Target companies - working
+  companies: true, // Company tracker - working
   alerts: false,   // Google alerts - disabled due to hardcoded personal search strings
   scorer: false    // Job fit scorer - disabled due to hardcoded personal profile
 };
@@ -21,6 +21,15 @@ const FEATURES = {
 // Returns false if the feature doesn't exist in FEATURES or is explicitly set to false
 function isFeatureEnabled(feature) {
   return FEATURES.hasOwnProperty(feature) && FEATURES[feature] !== false; /* eslint-disable-line no-prototype-builtins */
+}
+
+// Function-driven default tab logic for the landing page.
+// This keeps landing behavior in code instead of relying on hardcoded DOM state.
+function getDefaultTab() {
+  if (isFeatureEnabled('companies')) return 'companies';
+  if (isFeatureEnabled('tracker')) return 'tracker';
+  if (isFeatureEnabled('jobs')) return 'jobs';
+  return Object.keys(FEATURES).find(isFeatureEnabled) || 'companies';
 }
 
 // Helper function to get configured locale for date/time formatting
@@ -472,5 +481,18 @@ async function scoreJob() {
 
 if (typeof module !== 'undefined') {
   /* eslint-disable-next-line no-undef */
-  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote, isFeatureEnabled, getLocale };
+  module.exports = {
+    FEATURES,
+    getTracker,
+    saveTracker,
+    getSeen,
+    saveSeen,
+    getCompanies,
+    saveCompanies,
+    updateStatus,
+    updateNote,
+    isFeatureEnabled,
+    getDefaultTab,
+    getLocale
+  };
 }

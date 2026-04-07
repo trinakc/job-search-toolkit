@@ -289,6 +289,7 @@
       line-height: 1.5;
       margin-bottom: 10px;
       display: -webkit-box;
+      line-clamp: 3;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
@@ -1125,21 +1126,16 @@
 
   <div class="layout">
     <nav>
-      <div class="nav-label">Live search</div>
-      <button class="active" onclick="show('jobs', this)">Live jobs</button>
-      <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
-      <div class="nav-divider"></div>
-      <div class="nav-label">Reference</div>
-      <button onclick="show('companies', this)">Target companies</button>
-      <button onclick="show('alerts', this)">Google alerts</button>
-      <div class="nav-divider"></div>
       <div class="nav-label">Tools</div>
+      <button onclick="show('companies', this)">Company tracker</button>
+      <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
+      <button onclick="show('alerts', this)">Google alerts</button>
       <button onclick="show('scorer', this)">Job fit scorer</button>
     </nav>
 
     <main>
 
-      <div id="jobs" class="panel active">
+      <div id="jobs" class="panel">
         <h2>Live jobs</h2>
         <p class="panel-desc">Pulls live Irish roles from Adzuna. New roles (ones you haven't seen before) are
           highlighted with a green border. Hit "+ Track" on anything worth following up.</p>
@@ -1169,7 +1165,7 @@
               <option value="solutions project manager">Solutions Project Manager</option>
             </optgroup>
 
-            <optgroup label="Scrum & Agile">
+            <optgroup label="Scrum &amp; Agile">
               <option value="scrum master">Scrum Master</option>
               <option value="agile facilitator">Agile Facilitator</option>
               <option value="team coach">Team Coach</option>
@@ -1179,7 +1175,7 @@
               <option value="transformation lead">Transformation Lead</option>
             </optgroup>
 
-            <optgroup label="Programme & Portfolio">
+            <optgroup label="Programme &amp; Portfolio">
               <option value="programme manager">Programme Manager</option>
               <option value="portfolio manager">Portfolio Manager</option>
               <option value="strategic initiative lead">Strategic Initiative Lead</option>
@@ -1211,9 +1207,8 @@
       </div>
 
       <div id="companies" class="panel">
-        <h2>Target companies</h2>
-        <p class="panel-desc">Enterprise SaaS companies with Irish offices. Roles often appear on these pages before
-          hitting aggregators.</p>
+        <h2>Company tracker</h2>
+        <p class="panel-desc">Track target companies, save application status, and keep useful notes for each employer.</p>
         <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
         <div class="company-grid"></div>
       </div>
