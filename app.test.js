@@ -127,17 +127,20 @@ describe('updateNote', () => {
 
 describe('isFeatureEnabled', () => {
   test('returns true for enabled features', () => {
+    // Test that features set to true in FEATURES object return true
     expect(isFeatureEnabled('jobs')).toBe(true);
     expect(isFeatureEnabled('tracker')).toBe(true);
     expect(isFeatureEnabled('companies')).toBe(true);
   });
 
   test('returns false for disabled features', () => {
+    // Test that features set to false in FEATURES object return false
     expect(isFeatureEnabled('alerts')).toBe(false);
     expect(isFeatureEnabled('scorer')).toBe(false);
   });
 
   test('returns false for unknown features', () => {
+    // Test that features not defined in FEATURES object return false
     expect(isFeatureEnabled('unknown')).toBe(false);
   });
 });

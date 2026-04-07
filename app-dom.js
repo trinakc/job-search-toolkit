@@ -44,11 +44,13 @@ function renderCompanies() {
 function renderAlerts() {
   const alertsContainer = document.querySelector('.alert-list');
   if (!alertsContainer) return;
+  // Load alert strings from config, or show placeholder if none configured
   const alertStrings = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ALERT_STRINGS) ? API_CONFIG.ALERT_STRINGS : [];
   if (!alertStrings.length) {
     alertsContainer.innerHTML = '<p>Add your Google alert search strings in config.js</p>';
     return;
   }
+  // Render each alert as a card with copy button
   alertsContainer.innerHTML = alertStrings.map(alert => `
     <div class="alert-card">
       <div class="alert-name">${alert.name}</div>
@@ -102,13 +104,14 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
   });
 
-  // Handle feature flags
+  // Handle feature flags - hide disabled features and show placeholders
   Object.keys(FEATURES).forEach(feature => {
     const navBtn = document.querySelector(`nav button[onclick*="show('${feature}'"]`);
     const panel = document.getElementById(feature);
     if (!isFeatureEnabled(feature)) {
-      if (navBtn) navBtn.style.display = 'none';
+      if (navBtn) navBtn.style.display = 'none'; // Hide nav button for disabled features
       if (panel) {
+        // Replace panel content with "coming soon" message
         panel.innerHTML = `
           <h2>${panel.querySelector('h2') ? panel.querySelector('h2').textContent : feature}</h2>
           <p class="panel-desc">This feature is coming soon.</p>
@@ -117,7 +120,7 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     }
   });
 
-  // Set header info
+  // Set header info from config
   const headerInfo = document.getElementById('header-info');
   if (headerInfo) {
     headerInfo.textContent = (typeof API_CONFIG !== 'undefined' && API_CONFIG.HEADER_INFO) ? API_CONFIG.HEADER_INFO : 'Your Job Title · Your Location · Year';

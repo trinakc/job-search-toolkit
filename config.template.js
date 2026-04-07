@@ -20,10 +20,10 @@ const API_CONFIG = {
   ANTHROPIC_API_KEY: '', // Leave empty if using Claude web UI
 
   // Personal information for customization
-  HEADER_INFO: 'Your Job Title · Your Location · 2024', // e.g. 'Delivery Manager · County Limerick · 2024'
-  PROFILE_SUMMARY: 'Add your professional summary here. Include your current role, experience, and what you\'re looking for.', // For job fit scorer
+  HEADER_INFO: 'Your Job Title · Your Location · 2024', // e.g. 'Delivery Manager · County Limerick · 2024' - displayed in the header
+  PROFILE_SUMMARY: 'Add your professional summary here. Include your current role, experience, and what you\'re looking for.', // Used by the job fit scorer
   ALERT_STRINGS: [
     { name: 'Role 1 — Location', string: '"Role Name" Location keywords' },
     { name: 'Role 2 — Location', string: '"Another Role" Location keywords' },
-  ], // Google alert search strings
+  ], // Google alert search strings - each object has a name and the search string to copy
 };

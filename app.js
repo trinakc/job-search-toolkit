@@ -8,15 +8,17 @@ if (typeof API_CONFIG === 'undefined') {
 
 // Feature flags for major panels/features
 // Set to false to disable/hide features that are broken or non-functional
+// This allows the app to gracefully handle incomplete features by hiding them
 const FEATURES = {
-  jobs: true,      // Live job search
-  tracker: true,   // Job tracker
-  companies: true, // Target companies
-  alerts: false,   // Google alerts (has hardcoded personal search strings)
-  scorer: false    // Job fit scorer (has hardcoded personal profile)
+  jobs: true,      // Live job search - working
+  tracker: true,   // Job tracker - working
+  companies: true, // Target companies - working
+  alerts: false,   // Google alerts - disabled due to hardcoded personal search strings
+  scorer: false    // Job fit scorer - disabled due to hardcoded personal profile
 };
 
 // Function to check if a feature is enabled
+// Returns false if the feature doesn't exist in FEATURES or is explicitly set to false
 function isFeatureEnabled(feature) {
   return FEATURES.hasOwnProperty(feature) && FEATURES[feature] !== false; /* eslint-disable-line no-prototype-builtins */
 }
@@ -152,7 +154,7 @@ function updateTrackerNav() {
 }
 
 function show(id, btn) {
-  if (!isFeatureEnabled(id)) return;
+  if (!isFeatureEnabled(id)) return; // Don't show disabled features
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
