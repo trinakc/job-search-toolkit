@@ -1,7 +1,7 @@
 {
   "name": "job-search-toolkit",
   "version": "1.0.0",
-  "description": "A single-file HTML job search dashboard built for Trina's active search for \r Delivery Manager, Engineering Manager, Technical Project Manager, and Scrum Master \r roles in Ireland (Dublin/Cork hybrid or remote).",
+  "description": "A customizable single-file HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.",
   "main": "config.js",
   "scripts": {
     "lint:js": "eslint app.js",

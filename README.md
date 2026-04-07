@@ -1,12 +1,10 @@
 # Job Search Toolkit
 
-A single-file HTML job search dashboard built for Trina's active search for 
-Delivery Manager, Engineering Manager, Technical Project Manager, and Scrum Master 
-roles in Ireland (Dublin/Cork hybrid or remote).
+A customizable single-file HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.
 
 ## What it does
 
-- **Live jobs** — searches Adzuna's Irish job database by role title and location, 
+- **Live jobs** — searches job databases by role title and location, 
   highlights roles not seen before, supports single-title or broad "search all" mode
 - **My tracker** — save interesting roles, track status (New → Applied → Interviewing → Skipped), 
   add notes. Persists in browser localStorage.
@@ -16,7 +14,7 @@ roles in Ireland (Dublin/Cork hybrid or remote).
   useful company info, with last updated timestamps. Persists in browser localStorage.
 - **Google alerts** — pre-built search strings to paste into google.com/alerts
 - **Job fit scorer** — paste a job description, get an AI-powered fit analysis against 
-  Trina's profile using the Anthropic API
+  your configured profile using the Anthropic API
 
 ## Tech
 
@@ -40,7 +38,7 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
    ```bash
    cp config.template.js config.js
    ```
-2. Open `config.js` and add your Adzuna credentials (never commit this file).
+2. Open `config.js` and add your API credentials and personal information (name, location, target roles, profile details, etc.).
 3. `config.js` is git-ignored and will never be committed.
 
 ### Run locally
@@ -56,18 +54,22 @@ Then open `http://localhost:8000/job-search-toolkit.html`
 - Adzuna Ireland (`/ie/`) endpoint access pending confirmation from Adzuna support
 - CORS issues may occur if file is opened directly as `file://` (use local server instead)
 
-## Candidate profile (for AI scorer context)
+## Configuration
 
-- Delivery Manager / Engineering Manager based in County Limerick
-- Background: QAD Inc — EM, Principal QA, Scrum Master, Product Owner
-- Technical: AWS, Kubernetes, Docker, GitLab CI/CD, Bash, Python, Linux
-- Certifications: CSM (Scrum Alliance 2021), PRINCE2 Foundation (PeopleCert 2026)
-- Open to: Dublin/Cork hybrid (max 2 days), remote, or Limerick-based roles
+The app is fully customizable through `config.js`. Key settings include:
+
+- **API Keys**: Adzuna and Anthropic credentials
+- **Personal Info**: Header text, location, target roles
+- **Profile Details**: Background, skills, certifications for AI job fit analysis
+- **Alert Strings**: Custom Google alert search queries
+- **Feature Flags**: Enable/disable specific features (e.g., if APIs are unavailable)
+
+See `config.template.js` for all available options.
 
 ## Security
 
-API credentials are stored in `config.js`, which is **git-ignored** and never committed to version control. 
-This prevents accidental exposure of sensitive keys if the repo ever becomes public.
+API credentials and personal information are stored in `config.js`, which is **git-ignored** and never committed to version control. 
+This prevents accidental exposure of sensitive keys and personal data if the repo ever becomes public.
 Always keep `config.js` local and never commit it.
 
 ## Development practices
