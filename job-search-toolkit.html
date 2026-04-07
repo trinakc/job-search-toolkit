@@ -1120,7 +1120,7 @@
 
   <header>
     <h1>Job Search Toolkit</h1>
-    <p>Delivery Manager · County Limerick · 2026</p>
+    <p id="header-info"><!-- Header info loaded from config.js HEADER_INFO --></p>
   </header>
 
   <div class="layout">
@@ -1226,51 +1226,13 @@
         <div class="alerts-note">Tip: Google Alerts catches roles posted on company blogs, press releases, and smaller
           boards that don't always surface on LinkedIn or Indeed.</div>
         <div class="alert-list">
-          <div class="alert-card">
-            <div class="alert-name">Engineering Manager — Ireland</div>
-            <div class="alert-string">"Engineering Manager" Ireland hybrid (Dublin OR Cork) (SaaS OR software)</div>
-            <button class="copy-btn"
-              onclick="copyAlert(this,'&quot;Engineering Manager&quot; Ireland hybrid (Dublin OR Cork) (SaaS OR software)')">Copy
-              string</button>
-          </div>
-          <div class="alert-card">
-            <div class="alert-name">Delivery Manager — Ireland</div>
-            <div class="alert-string">"Delivery Manager" Ireland (Dublin OR Cork OR remote) (SaaS OR software OR tech)
-            </div>
-            <button class="copy-btn"
-              onclick="copyAlert(this,'&quot;Delivery Manager&quot; Ireland (Dublin OR Cork OR remote) (SaaS OR software OR tech)')">Copy
-              string</button>
-          </div>
-          <div class="alert-card">
-            <div class="alert-name">Technical Project Manager — Ireland</div>
-            <div class="alert-string">"Technical Project Manager" Ireland (Dublin OR Cork OR Limerick) software</div>
-            <button class="copy-btn"
-              onclick="copyAlert(this,'&quot;Technical Project Manager&quot; Ireland (Dublin OR Cork OR Limerick) software')">Copy
-              string</button>
-          </div>
-          <div class="alert-card">
-            <div class="alert-name">Scrum Master / Agile Coach — Ireland</div>
-            <div class="alert-string">("Scrum Master" OR "Agile Coach") Ireland (Dublin OR Cork OR remote) software
-            </div>
-            <button class="copy-btn"
-              onclick="copyAlert(this,'(&quot;Scrum Master&quot; OR &quot;Agile Coach&quot;) Ireland (Dublin OR Cork OR remote) software')">Copy
-              string</button>
-          </div>
-          <div class="alert-card">
-            <div class="alert-name">DevOps / Platform delivery</div>
-            <div class="alert-string">("Delivery Manager" OR "Engineering Manager") Ireland (DevOps OR "CI/CD" OR cloud
-              OR platform)</div>
-            <button class="copy-btn"
-              onclick="copyAlert(this,'(&quot;Delivery Manager&quot; OR &quot;Engineering Manager&quot;) Ireland (DevOps OR &quot;CI/CD&quot; OR cloud OR platform)')">Copy
-              string</button>
-          </div>
+          <!-- Alerts loaded from config.js -->
         </div>
       </div>
 
       <div id="scorer" class="panel">
         <h2>Job fit scorer</h2>
-        <p class="panel-desc">Paste a job description and get a fit analysis against your profile as a Delivery Manager
-          with technical background in DevOps, CI/CD, and cloud infrastructure.</p>
+        <p class="panel-desc">Paste a job description and get a fit analysis against your profile. Customize your profile summary in config.js.</p>
         <p class="api-note">Requires internet connection · Uses Anthropic API · Covered by your Claude subscription</p>
         <br>
         <textarea id="jd" placeholder="Paste the full job description here..."></textarea>
@@ -1315,6 +1277,7 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="app-dom.js"></script>
 
   
 </body>

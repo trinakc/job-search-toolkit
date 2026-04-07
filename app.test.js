@@ -7,7 +7,7 @@ global.API_CONFIG = {
   ADZUNA_APP_KEY: 'test_key'
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -122,5 +122,25 @@ describe('updateNote', () => {
 
     // Read back and confirm the note was saved
     expect(getTracker()['abc'].note).toBe('Looks promising');
+  });
+});
+
+describe('isFeatureEnabled', () => {
+  test('returns true for enabled features', () => {
+    // Test that features set to true in FEATURES object return true
+    expect(isFeatureEnabled('jobs')).toBe(true);
+    expect(isFeatureEnabled('tracker')).toBe(true);
+    expect(isFeatureEnabled('companies')).toBe(true);
+  });
+
+  test('returns false for disabled features', () => {
+    // Test that features set to false in FEATURES object return false
+    expect(isFeatureEnabled('alerts')).toBe(false);
+    expect(isFeatureEnabled('scorer')).toBe(false);
+  });
+
+  test('returns false for unknown features', () => {
+    // Test that features not defined in FEATURES object return false
+    expect(isFeatureEnabled('unknown')).toBe(false);
   });
 });
