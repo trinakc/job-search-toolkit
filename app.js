@@ -11,7 +11,7 @@ if (typeof API_CONFIG === 'undefined') {
 // This allows the app to gracefully handle incomplete features by hiding them
 const FEATURES = {
   jobs: false,     // Live job search - disabled until API and UI are stable
-  tracker: true,   // Job tracker - working
+  tracker: false,  // Job tracker - hidden when live search is disabled (tracker is only populated via live search)
   companies: true, // Company tracker - working
   alerts: false,   // Google alerts - disabled due to hardcoded personal search strings
   scorer: false    // Job fit scorer - disabled due to hardcoded personal profile

@@ -7,13 +7,25 @@
 
 A customizable HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.
 
+## Feature status
+
+Current state of each panel — controlled via the `FEATURES` object in `app.js`:
+
+| Feature | Status | Notes |
+|---|---|---|
+| Company tracker | ✅ Enabled | |
+| Live jobs | ❌ Disabled | Pending Adzuna Ireland API confirmation |
+| My tracker | ❌ Disabled | Hidden when live search is off — tracker is only populated via live search |
+| Google alerts | ❌ Disabled | Contains hardcoded personal search strings |
+| Job fit scorer | ❌ Disabled | Contains hardcoded personal profile |
+
 ## What it does
 
 - **Live jobs** — searches job databases by role title and location, 
   highlights roles not seen before, supports single-title or broad "search all" mode.
   (This feature is currently disabled by default via the app feature flag until live search is stable.)
 - **My tracker** — save interesting roles, track status (New → Applied → Interviewing → Skipped), 
-  add notes. Persists in browser localStorage.
+  add notes. Persists in browser localStorage. Requires live search to be enabled.
 - **Target companies** — dynamic list of target employers with careers page links and tags. 
   Add, edit, and remove companies via the UI. Status badges show application progress at a glance. 
   Click tracking records last visit date. Expandable application tracking: current status, role applied for, 
