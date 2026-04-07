@@ -79,6 +79,93 @@ function getCompanies() {
 }
 function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
 
+// ─── sortCompanies ────────────────────────────────────────────────────────────
+// Returns a new sorted array — never mutates the input.
+//
+// sortKey options:
+//   'alpha-asc'  — A→Z by name (default when no key provided)
+//   'alpha-desc' — Z→A by name
+//   'date-asc'   — oldest lastClicked first; nulls go to the bottom
+//   'date-desc'  — newest lastClicked first; nulls go to the bottom
+//
+// Null lastClicked means the company has never been visited. It is deliberately
+// placed at the bottom of date sorts (not the top) so "never checked" entries
+// don't crowd out entries with real dates in either direction.
+function sortCompanies(companies, sortKey = 'alpha-asc') {
+  // Spread to avoid mutating the caller's array
+  const sorted = [...companies];
+
+  sorted.sort((a, b) => {
+    if (sortKey === 'alpha-asc') {
+      return a.name.localeCompare(b.name);
+    }
+
+    if (sortKey === 'alpha-desc') {
+      return b.name.localeCompare(a.name);
+    }
+
+    if (sortKey === 'date-asc' || sortKey === 'date-desc') {
+      const aNull = a.lastClicked === null || a.lastClicked === undefined;
+      const bNull = b.lastClicked === null || b.lastClicked === undefined;
+
+      // Nulls always sink to the bottom regardless of sort direction
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+
+      const aTime = new Date(a.lastClicked).getTime();
+      const bTime = new Date(b.lastClicked).getTime();
+
+      // date-asc: oldest first (smallest timestamp first)
+      // date-desc: newest first (largest timestamp first)
+      return sortKey === 'date-asc' ? aTime - bTime : bTime - aTime;
+    }
+
+    // Unknown sort key — leave order unchanged
+    return 0;
+  });
+
+  return sorted;
+}
+
+// ─── filterCompanies ──────────────────────────────────────────────────────────
+// Returns a new filtered array — never mutates the input.
+//
+// options:
+//   tag     — only include companies whose tags array contains this string
+//              (case-insensitive match)
+//   daysAgo — only include companies whose lastClicked is older than N days ago,
+//              OR whose lastClicked is null (never checked = most stale)
+//
+// Both filters are optional. If neither is provided the full list is returned.
+// Filters compose: pass the result of filterCompanies into sortCompanies to
+// get a filtered + sorted set.
+function filterCompanies(companies, { tag, daysAgo } = {}) {
+  let result = companies;
+
+  if (tag) {
+    const needle = tag.toLowerCase();
+    // Keep companies that have at least one tag matching the search (case-insensitive)
+    result = result.filter(c =>
+      c.tags.some(t => t.toLowerCase() === needle)
+    );
+  }
+
+  if (daysAgo !== undefined && daysAgo !== null) {
+    // Calculate the cutoff timestamp: anything checked after this is "fresh"
+    const cutoff = Date.now() - daysAgo * 24 * 60 * 60 * 1000;
+
+    result = result.filter(c => {
+      // null means never checked — always include (it is the most stale)
+      if (c.lastClicked === null || c.lastClicked === undefined) return true;
+      // Include companies last checked before the cutoff (i.e. stale ones)
+      return new Date(c.lastClicked).getTime() < cutoff;
+    });
+  }
+
+  return result;
+}
+
 function openAddCompanyModal() {
   document.getElementById('modal-title').textContent = 'Add new company';
   document.getElementById('modal-submit-btn').textContent = 'Save company';
@@ -489,6 +576,8 @@ if (typeof module !== 'undefined') {
     saveSeen,
     getCompanies,
     saveCompanies,
+    sortCompanies,
+    filterCompanies,
     updateStatus,
     updateNote,
     isFeatureEnabled,
