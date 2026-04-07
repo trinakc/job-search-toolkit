@@ -104,21 +104,22 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
   });
 
-  // Handle feature flags - hide disabled features and show placeholders
+  // Handle feature flags - hide disabled features and disabled panels
   Object.keys(FEATURES).forEach(feature => {
     const navBtn = document.querySelector(`nav button[onclick*="show('${feature}'"]`);
     const panel = document.getElementById(feature);
     if (!isFeatureEnabled(feature)) {
-      if (navBtn) navBtn.style.display = 'none'; // Hide nav button for disabled features
-      if (panel) {
-        // Replace panel content with "coming soon" message
-        panel.innerHTML = `
-          <h2>${panel.querySelector('h2') ? panel.querySelector('h2').textContent : feature}</h2>
-          <p class="panel-desc">This feature is coming soon.</p>
-        `;
-      }
+      if (navBtn) navBtn.style.display = 'none';
+      if (panel) panel.style.display = 'none';
     }
   });
+
+  // Ensure the default landing page is driven by code, not hardcoded DOM classes.
+  const defaultTab = getDefaultTab();
+  const defaultButton = document.querySelector(`nav button[onclick*="show('${defaultTab}'"]`);
+  if (defaultButton) {
+    show(defaultTab, defaultButton);
+  }
 
   // Set header info from config
   const headerInfo = document.getElementById('header-info');

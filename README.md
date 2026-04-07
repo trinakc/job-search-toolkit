@@ -5,7 +5,8 @@ A customizable single-file HTML job search dashboard for tracking applications, 
 ## What it does
 
 - **Live jobs** — searches job databases by role title and location, 
-  highlights roles not seen before, supports single-title or broad "search all" mode
+  highlights roles not seen before, supports single-title or broad "search all" mode.
+  (This feature is currently disabled by default via the app feature flag until live search is stable.)
 - **My tracker** — save interesting roles, track status (New → Applied → Interviewing → Skipped), 
   add notes. Persists in browser localStorage.
 - **Target companies** — dynamic list of target employers with careers page links and tags. 
@@ -52,6 +53,7 @@ Then open `http://localhost:8000/job-search-toolkit.html`
 ## Known issues
 
 - Adzuna Ireland (`/ie/`) endpoint access pending confirmation from Adzuna support
+- Live Search is disabled by default via `FEATURES.jobs` in `app.js`; enable it once the Adzuna integration is stable.
 - CORS issues may occur if file is opened directly as `file://` (use local server instead)
 
 ## Configuration

@@ -7,7 +7,7 @@ global.API_CONFIG = {
   ADZUNA_APP_KEY: 'test_key'
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -126,21 +126,28 @@ describe('updateNote', () => {
 });
 
 describe('isFeatureEnabled', () => {
-  test('returns true for enabled features', () => {
-    // Test that features set to true in FEATURES object return true
-    expect(isFeatureEnabled('jobs')).toBe(true);
-    expect(isFeatureEnabled('tracker')).toBe(true);
-    expect(isFeatureEnabled('companies')).toBe(true);
+  test('returns false for disabled jobs feature by default', () => {
+    expect(isFeatureEnabled('jobs')).toBe(false);
   });
 
-  test('returns false for disabled features', () => {
-    // Test that features set to false in FEATURES object return false
-    expect(isFeatureEnabled('alerts')).toBe(false);
-    expect(isFeatureEnabled('scorer')).toBe(false);
+  test('returns true for enabled jobs feature when the flag is enabled', () => {
+    const original = FEATURES.jobs;
+    FEATURES.jobs = true;
+
+    expect(isFeatureEnabled('jobs')).toBe(true);
+
+    FEATURES.jobs = original;
   });
 
   test('returns false for unknown features', () => {
-    // Test that features not defined in FEATURES object return false
     expect(isFeatureEnabled('unknown')).toBe(false);
+  });
+});
+
+describe('getDefaultTab', () => {
+  test('returns companies when the companies feature is enabled', () => {
+    // getDefaultTab is function-driven, not hardcoded in the DOM,
+    // so this behavior can be asserted directly in the unit test.
+    expect(getDefaultTab()).toBe('companies');
   });
 });
