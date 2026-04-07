@@ -23,6 +23,11 @@ function isFeatureEnabled(feature) {
   return FEATURES.hasOwnProperty(feature) && FEATURES[feature] !== false; /* eslint-disable-line no-prototype-builtins */
 }
 
+// Helper function to get configured locale for date/time formatting
+function getLocale() {
+  return (typeof API_CONFIG !== 'undefined' && API_CONFIG.LOCALE) ? API_CONFIG.LOCALE : 'en-US';
+}
+
 const AID = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_ID) ? API_CONFIG.ADZUNA_APP_ID : '';
 const AKEY = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_KEY) ? API_CONFIG.ADZUNA_APP_KEY : '';
 const TRACKER_KEY = 'jst_tracker_v1';
@@ -193,7 +198,7 @@ async function fetchJobs() {
     saveSeen([...new Set([...seen, ...jobs.map(j => j.id)])]);
 
     document.getElementById('last-fetched').textContent =
-      'Last fetched: ' + new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+      'Last fetched: ' + new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 
     if (!jobs.length) {
       list.innerHTML = '<div class="empty-state">No roles found. Try a different role type or location.</div>';
@@ -213,7 +218,7 @@ async function fetchJobs() {
         ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
         : '';
       const posted = job.created
-        ? ' &middot; ' + new Date(job.created).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+        ? ' &middot; ' + new Date(job.created).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
         : '';
       const desc = job.description
         ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
@@ -291,7 +296,7 @@ async function fetchAllJobs() {
     saveSeen([...new Set([...seen, ...allJobs.map(j => j.id)])]);
 
     document.getElementById('last-fetched').textContent =
-      'Last fetched: ' + new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+      'Last fetched: ' + new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 
     if (!allJobs.length) {
       list.innerHTML = '<div class="empty-state">No roles found.</div>';
@@ -311,7 +316,7 @@ async function fetchAllJobs() {
         ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
         : '';
       const posted = job.created
-        ? ' &middot; ' + new Date(job.created).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+        ? ' &middot; ' + new Date(job.created).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
         : '';
       const desc = job.description
         ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
@@ -381,7 +386,7 @@ function renderTracker() {
           <div class="tracker-main">
             <div class="tracker-title"><a href="${item.url}" target="_blank">${item.title}</a></div>
             <div class="tracker-company">${item.company}</div>
-            <div class="tracker-saved">Saved ${new Date(item.savedAt).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+            <div class="tracker-saved">Saved ${new Date(item.savedAt).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>
             ${item.note ? `<div class="tracker-note-display">${item.note}</div>` : ''}
           </div>
           <div class="tracker-controls">
@@ -467,5 +472,5 @@ async function scoreJob() {
 
 if (typeof module !== 'undefined') {
   /* eslint-disable-next-line no-undef */
-  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote, isFeatureEnabled };
+  module.exports = { getTracker, saveTracker, getSeen, saveSeen, getCompanies, saveCompanies, updateStatus, updateNote, isFeatureEnabled, getLocale };
 }
