@@ -72,7 +72,8 @@ See `config.template.js` for all available options.
 
 API credentials and personal information are stored in `config.js`, which is **git-ignored** and never committed to version control. 
 This prevents accidental exposure of sensitive keys and personal data if the repo ever becomes public.
-The repository also uses `eslint-plugin-no-secrets` as part of `npm run lint:js` to catch high-entropy tokens, keys, and secrets in JS and HTML files.
+The repository also uses `eslint-plugin-no-secrets` as part of `npm run lint:js` to catch high-entropy tokens, keys, and secrets in JS and HTML files. 
+This is a safeguard to help prevent accidental secret leaks in source code.
 Always keep `config.js` local and never commit it.
 
 ## Development practices
