@@ -1,5 +1,10 @@
 # Job Search Toolkit
 
+<!-- CI badge: reflects the last run of the full CI pipeline (lint, Jest, Playwright)
+     against the main branch. Powered by GitHub Actions — updates automatically on every push.
+     Badge URL format: https://github.com/<owner>/<repo>/actions/workflows/<filename>/badge.svg -->
+[![CI](https://github.com/trinakc/job-search-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/trinakc/job-search-toolkit/actions/workflows/ci.yml)
+
 A customizable single-file HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.
 
 ## What it does
