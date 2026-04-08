@@ -104,17 +104,17 @@ This project was built to a deliberate scope. The following are known gaps, not 
 
 ### References
 
-### People First
+#### People First
 - [Human-Centric AI and the Future of Work — World Economic Forum](https://www.weforum.org/stories/2025/09/human-centric-ai-shape-the-future-of-work/)
 - [Stanford Human-Centered AI Institute](https://hai.stanford.edu/)
 - [Human at the Center: A Framework for Human-Driven AI Development — AI Magazine / Wiley](https://onlinelibrary.wiley.com/doi/full/10.1002/aaai.70043)
 
-### The Prompt is the Requirement
+#### The Prompt is the Requirement
 - [Prompt Engineering Overview — Anthropic Docs](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)
 - [The Prompt Engineering Playbook for Programmers — Addy Osmani](https://addyo.substack.com/p/the-prompt-engineering-playbook-for)
 - [Best Practices for AI-Assisted Coding — Axur Engineering](https://engineering.axur.com/2025/05/09/best-practices-for-ai-assisted-coding.html)
 
-### Quality
+#### Quality
 - [TDD and AI: Quality in the DORA Report — Google Cloud](https://cloud.google.com/discover/how-test-driven-development-amplifies-ai-success)
 - [Why TDD Works So Well in AI-Assisted Programming — Codemanship](https://codemanship.wordpress.com/2026/01/09/why-does-test-driven-development-work-so-well-in-ai-assisted-programming/)
 - [What is Shift-Left Testing? — IBM](https://www.ibm.com/think/topics/shift-left-testing)
@@ -122,13 +122,13 @@ This project was built to a deliberate scope. The following are known gaps, not 
 - [Requirements-Driven Development — Visure Solutions](https://visuresolutions.com/alm-guide/requirements-driven-development/)
 - [Customer-Driven Development — Alex Bunardzic, Medium](https://medium.com/@alexbunardzic/customer-driven-development-2eb9b8e57380)
 
-### Governance and Guardrails
+#### Governance and Guardrails
 - [How to Close the AI Governance Gap in Software Development — SecurityWeek](https://www.securityweek.com/how-to-close-the-ai-governance-gap-in-software-development/)
 - [The Essential AI Governance Framework — Databricks](https://www.databricks.com/blog/practical-ai-governance-framework-enterprises)
 - [The Time for AI Governance is Now — ISACA](https://www.isaca.org/resources/news-and-trends/industry-news/2025/the-time-for-ai-governance-is-now-key-considerations-and-guidelines-for-organizations)
 - [As AI Speeds Up Development, Release Management is Becoming a Governance Issue — European Business Review](https://www.europeanbusinessreview.com/as-ai-speeds-up-development-release-management-is-becoming-a-governance-issue/)
 
-### Pitfalls of AI in Development
+#### Pitfalls of AI in Development
 - [Debt Behind the AI Boom: A Large-Scale Empirical Study — arXiv](https://arxiv.org/abs/2603.28592)
 - [AI in Software Development: Productivity at the Cost of Code Quality? — DevOps.com](https://devops.com/ai-in-software-development-productivity-at-the-cost-of-code-quality-2/)
 - [How AI-Generated Code Accelerates Technical Debt — LeadDev](https://leaddev.com/software-quality/how-ai-generated-code-accelerates-technical-debt)
