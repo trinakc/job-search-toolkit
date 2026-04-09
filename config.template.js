@@ -8,10 +8,11 @@
  */
 
 const API_CONFIG = {
-  // Adzuna Jobs API credentials
-  // Get these from: https://developer.adzuna.com/
-  ADZUNA_APP_ID: 'your_adzuna_app_id_here',
-  ADZUNA_APP_KEY: 'your_adzuna_app_key_here',
+  // Reed.co.uk Jobs API credentials
+  // Get these from: https://www.reed.co.uk/developers
+  // Register for a free account, then create an API key in the developer portal.
+  // Authentication: HTTP Basic Auth — API key is the username, password is empty.
+  REED_API_KEY: 'your_reed_api_key_here',
 
   // Anthropic API key for job fit scorer
   // Get this from: https://console.anthropic.com/

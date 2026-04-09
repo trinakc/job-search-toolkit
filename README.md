@@ -14,8 +14,8 @@ Current state of each panel — controlled via the `FEATURES` object in `app.js`
 | Feature | Status | Notes |
 |---|---|---|
 | Company tracker | ✅ Enabled | |
-| Live jobs | ❌ Disabled | Pending Adzuna Ireland API confirmation |
-| My tracker | ❌ Disabled | Hidden when live search is off — tracker is only populated via live search |
+| Live jobs | ✅ Enabled | Powered by Reed.co.uk API |
+| My tracker | ✅ Enabled | Populated via "+ Track" in live search |
 | Google alerts | ❌ Disabled | Contains hardcoded personal search strings |
 | Job fit scorer | ❌ Disabled | Contains hardcoded personal profile |
 
@@ -47,7 +47,7 @@ No framework, no build step. The app is split across a small number of files:
 
 External dependencies:
 - Google Fonts (DM Sans, DM Mono) — loaded from CDN
-- Adzuna Jobs API — for live Irish job listings
+- Reed.co.uk API — for live Irish job listings (free developer account required)
 - Anthropic API (claude-sonnet-4-20250514) — for job fit scoring
 
 All state (tracker, companies, seen jobs) stored in browser localStorage.
@@ -56,7 +56,7 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
 
 ### Get API keys
 
-1. **Adzuna Jobs API**: Register at https://developer.adzuna.com/ to get your App ID and Key.
+1. **Reed.co.uk API**: Register for a free developer account at https://www.reed.co.uk/developers to get your API key. Authentication uses HTTP Basic Auth — the key is your username and the password is empty.
 2. **Anthropic API**: Required for the Job Fit Scorer. Get a key at https://console.anthropic.com/ and add it to `config.js`.
 
 ### Configure locally
@@ -86,16 +86,15 @@ Double-click `start-server.bat` in the repo root, or run it from a terminal:
 ```
 The script opens the toolkit in your default browser and starts the Python server in one step. Python 3 must be installed and on your PATH.
 
-## Known issues
+## Known limitations
 
-- Adzuna Ireland (`/ie/`) endpoint access pending confirmation from Adzuna support
-- Live Search is disabled by default via `FEATURES.jobs` in `app.js`; enable it once the Adzuna integration is stable.
+- **Salaries displayed in GBP (£)**: Reed.co.uk is a UK job board. Salary data is returned in GBP and displayed with the £ symbol. EUR (€) is not available from the Reed API — this is an API limitation, not a bug. Irish market salaries may not convert directly.
 
 ## Configuration
 
 The app is fully customizable through `config.js`. Key settings include:
 
-- **API Keys**: Adzuna and Anthropic credentials
+- **API Keys**: Reed.co.uk and Anthropic credentials
 - **Personal Info**: Header text, location, target roles
 - **Profile Details**: Background, skills, certifications for AI job fit analysis
 - **Alert Strings**: Custom Google alert search queries
@@ -113,7 +112,7 @@ See `config.template.js` for all available options.
 
 **GitHub security features** — Secret scanning is enabled at the repository level.
 
-**Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Adzuna API.
+**Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Reed.co.uk API.
 
 ## Testing
 
