@@ -344,11 +344,20 @@ async function fetchReedJobs(keywords, locationName) {
   // No Node.js Buffer fallback needed — this code runs in browser/jsdom only.
   const credentials = btoa(reedApiKey + ':');
 
-  // Build the proxy URL as a relative path — same origin as the app, so no CORS check.
-  // URLSearchParams handles encoding: spaces become '+', special chars become %XX.
-  // The proxy (server.js) strips the /api/reed prefix and forwards to Reed with the
-  // same query string.
-  const params = new URLSearchParams({ keywords, locationName });
+  // Wrap keywords in double-quotes so Reed treats the input as an exact phrase,
+  // not individual OR-matched terms.
+  //
+  // WITHOUT quotes: keywords=engineering+manager
+  //   Reed returns any job containing "engineering" OR "manager" anywhere in the
+  //   title or description — a vast, irrelevant result set.
+  //
+  // WITH quotes:    keywords=%22engineering+manager%22
+  //   Reed returns only jobs where the exact phrase appears, e.g. "Engineering
+  //   Manager", "Senior Engineering Manager". Dramatically more relevant results.
+  //
+  // URLSearchParams encodes the surrounding " characters as %22 automatically.
+  // Quoting a single-word keyword is harmless — consistent behaviour across all searches.
+  const params = new URLSearchParams({ keywords: `"${keywords}"`, locationName });
   const proxyUrl = '/api/reed/search?' + params.toString();
 
   // Make the authenticated request to the local proxy.
