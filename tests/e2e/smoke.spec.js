@@ -108,9 +108,12 @@ test('add company modal opens and saves a new company correctly', async ({ page 
 // FEATURES.jobs is now true in app.js, so the Live Jobs nav button and panel
 // are visible — this test confirms that end-to-end wiring is correct.
 test('live jobs panel is visible, search returns results, and job cards render', async ({ page }) => {
-  // Intercept any request to the Reed API search endpoint (the ** glob matches
-  // any query string, so it works regardless of which keywords/location are used)
-  await page.route('https://www.reed.co.uk/api/1.0/search**', route => {
+  // Intercept requests to the local Reed proxy endpoint.
+  // fetchReedJobs() calls /api/reed/search (same-origin) rather than Reed directly
+  // because Reed's API does not send CORS headers. server.js proxies those requests
+  // to Reed server-side. Here we intercept at the proxy URL so the test never
+  // touches the network, regardless of whether a real API key is configured.
+  await page.route('**/api/reed/search**', route => {
     // Respond with a minimal but valid Reed API response containing one job.
     // The shape matches what fetchReedJobs() expects to unwrap from data.results.
     route.fulfill({

@@ -11,13 +11,19 @@
 ::      your default browser using the Windows "start" command.
 ::      "start" is non-blocking — it hands the URL to Windows
 ::      and returns immediately, so the next line runs right away.
-::   2. Starts a Python HTTP server on port 8000 in this window.
+::   2. Starts the Node.js server (server.js) on port 8000.
 ::      The server must be running for the page to load — if the
 ::      browser opens before the server is ready, just refresh.
 ::
+:: WHY NODE INSTEAD OF PYTHON
+::   The Reed.co.uk API does not send CORS headers, so direct
+::   browser requests to Reed are blocked. server.js serves the
+::   static files AND proxies /api/reed/search to Reed server-side
+::   (server-to-server calls are not subject to CORS).
+::
 :: Prerequisites:
-::   - Python 3 must be installed and on your PATH.
-::     Verify with: python --version
+::   - Node.js must be installed and on your PATH.
+::     Verify with: node --version
 ::   - Run this script from the repo root (the folder that
 ::     contains job-search-toolkit.html).
 ::
@@ -29,9 +35,7 @@
 :: open a new cmd window; it opens the URL in the default browser.
 start http://localhost:8000/job-search-toolkit.html
 
-:: Start the Python built-in HTTP server on port 8000.
-:: This serves all files in the current directory, which is why
-:: the script must be run from the repo root.
-:: A local server is required to avoid CORS errors that occur
-:: when the HTML file is opened directly via the file:// protocol.
-python -m http.server 8000
+:: Start the Node.js server.
+:: server.js serves all files in the repo root AND proxies Reed API
+:: calls, which is why it replaces the old Python http.server.
+node server.js

@@ -281,11 +281,26 @@ function copyAlert(btn, text) {
 // from the UI-level fetchJobs() function so it can be unit tested in isolation
 // without needing a real DOM, a running server, or a valid API key.
 //
-// Reed API docs: https://www.reed.co.uk/developers/jobseeker
-// Endpoint: GET https://www.reed.co.uk/api/1.0/search
-// Auth: HTTP Basic Auth — API key as username, empty string as password
-//   Header format: Authorization: Basic <base64(apiKey + ':')>
-//   The colon with empty password is required by the HTTP Basic Auth spec (RFC 7617).
+// WHY WE USE A LOCAL PROXY
+// ────────────────────────
+// Reed.co.uk does not send CORS headers in its API responses. If the browser
+// called Reed directly, the browser would block the response. Instead, this
+// function calls the local proxy endpoint (/api/reed/search), which is the same
+// origin as the app (no CORS check). server.js receives that request and forwards
+// it server-side to Reed — server-to-server HTTPS calls are not CORS-restricted.
+//
+// PROXY ENDPOINT
+// ──────────────
+//   Browser calls:  GET /api/reed/search?keywords=...&locationName=...
+//   Proxy forwards: GET https://www.reed.co.uk/api/1.0/search?keywords=...&locationName=...
+//   See server.js for the proxy implementation.
+//
+// AUTH
+// ────
+// Reed uses HTTP Basic Auth: API key as username, empty string as password.
+// Header format: Authorization: Basic <base64(apiKey + ':')>
+// The colon separator is required by the HTTP Basic Auth spec (RFC 7617).
+// This header is built here and forwarded by the proxy to Reed unchanged.
 //
 // Reed API response shape (relevant fields only):
 //   {
@@ -305,10 +320,10 @@ function copyAlert(btn, text) {
 //     ]
 //   }
 //
-// @param {string} keywords    - Job title / keyword (e.g. 'delivery manager')
+// @param {string} keywords     - Job title / keyword (e.g. 'delivery manager')
 // @param {string} locationName - Location (e.g. 'Ireland', 'Dublin')
 // @returns {Promise<Array>} Resolves to the results array from the Reed API
-// @throws {Error} If the API key is missing or the API returns a non-200 status
+// @throws {Error} If the API key is missing or the proxy/API returns a non-200 status
 async function fetchReedJobs(keywords, locationName) {
   // Read the API key from config inside the function — not at module level.
   // This ensures test code can set global.API_CONFIG before calling and see the change,
@@ -318,7 +333,8 @@ async function fetchReedJobs(keywords, locationName) {
     : '';
 
   // Guard: fail early with a clear message if no key is configured.
-  // Without a key, Reed returns a 401, but we can give a better error before hitting the wire.
+  // Without a key, the proxy would forward an empty Authorization header and Reed
+  // would return 401, but throwing here gives a clearer error and avoids the round trip.
   if (!reedApiKey) {
     throw new Error('Reed API key is not configured. Add REED_API_KEY to config.js.');
   }
@@ -330,16 +346,19 @@ async function fetchReedJobs(keywords, locationName) {
     ? btoa(reedApiKey + ':')
     : Buffer.from(reedApiKey + ':').toString('base64');
 
-  // Construct the URL using the URL class so query params are automatically encoded correctly.
-  // Spaces in keywords become %20 (or + depending on the environment) — URLSearchParams handles it.
-  const url = new URL('https://www.reed.co.uk/api/1.0/search');
-  url.searchParams.set('keywords', keywords);
-  url.searchParams.set('locationName', locationName);
+  // Build the proxy URL as a relative path — same origin as the app, so no CORS check.
+  // URLSearchParams handles encoding: spaces become '+', special chars become %XX.
+  // The proxy (server.js) strips the /api/reed prefix and forwards to Reed with the
+  // same query string.
+  const params = new URLSearchParams({ keywords, locationName });
+  const proxyUrl = '/api/reed/search?' + params.toString();
 
-  // Make the authenticated GET request — no body needed, params are in the query string
-  const response = await fetch(url.toString(), {
+  // Make the authenticated request to the local proxy.
+  // The proxy forwards the Authorization header to Reed unchanged.
+  const response = await fetch(proxyUrl, {
     headers: {
       // Standard HTTP Basic Auth format: "Basic <base64encodedCredentials>"
+      // server.js forwards this header to Reed as-is
       'Authorization': 'Basic ' + credentials
     }
   });
@@ -465,7 +484,7 @@ async function fetchJobs() {
     list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
   } catch (e) {
     // fetchReedJobs throws on missing key or non-200 response — catch and show user-facing message
-    list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your internet connection and API key, then try again.</div>';
+    list.innerHTML = '<div class="empty-state empty-state--error">Error fetching jobs. Check your internet connection and API key, then try again.</div>';
   }
   btn.disabled = false; btn.textContent = 'Search';
 }
@@ -576,7 +595,7 @@ async function fetchAllJobs() {
 
     list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
   } catch (e) {
-    list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your connection and try again.</div>';
+    list.innerHTML = '<div class="empty-state empty-state--error">Error fetching jobs. Check your connection and try again.</div>';
   }
 
   btn.disabled = false; btn.textContent = 'Search all titles';
@@ -697,7 +716,7 @@ async function scoreJob() {
       </div>
     </div>`;
   } catch (e) {
-    result.innerHTML = '<div class="loading-state" style="color:#B03A2E;">Something went wrong — check your connection and try again.</div>';
+    result.innerHTML = '<div class="loading-state empty-state--error">Something went wrong — check your connection and try again.</div>';
   }
   btn.disabled = false; btn.textContent = 'Analyse fit';
 }

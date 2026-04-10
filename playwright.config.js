@@ -36,17 +36,23 @@ module.exports = defineConfig({
     },
   ],
 
-  // Playwright will start the Python HTTP server before running tests and stop it when done.
+  // Playwright will start server.js before running tests and stop it when done.
+  //
+  // server.js replaces `python -m http.server 8000` because:
+  //   - Python's http.server only serves static files
+  //   - The Reed API does not allow direct browser requests (no CORS headers)
+  //   - server.js serves static files AND proxies /api/reed/search to Reed
+  //     server-side, where CORS does not apply
   //
   // reuseExistingServer behaviour:
-  //   - Local dev (no CI env var):  reuse a server already listening on port 8000,
-  //     so running `python -m http.server 8000` manually first also works fine.
+  //   - Local dev (no CI env var):  reuse a server already on port 8000,
+  //     so running `node server.js` manually first also works fine.
   //   - CI (process.env.CI is set): always start a fresh server to ensure a clean state.
   //
-  // Note: Python 3 is pre-installed on GitHub's ubuntu-latest runners, so no extra
-  // setup step is needed in the CI workflow for the server command to work.
+  // Node.js is pre-installed on GitHub's ubuntu-latest runners, so no extra
+  // setup step is needed in CI.
   webServer: {
-    command: 'python -m http.server 8000',
+    command: 'node server.js',
     port: 8000,
     reuseExistingServer: !process.env.CI,
   },

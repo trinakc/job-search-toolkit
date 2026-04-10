@@ -70,21 +70,20 @@ All state (tracker, companies, seen jobs) stored in browser localStorage.
 
 ### Run locally
 
-A local server is required to avoid CORS errors that occur when the file is opened directly via `file://`.
+A local Node.js server is required. It serves the static files and proxies Reed API
+calls server-side to work around Reed's missing CORS headers (direct browser requests
+to Reed are blocked by the browser's CORS policy).
 
-**Mac / Linux**
+**All platforms**
 ```bash
-python -m http.server 8000
+npm start
+# or: node server.js
 ```
 Then open `http://localhost:8000/job-search-toolkit.html`
 
-**Windows**
+**Windows shortcut**
 
-Double-click `start-server.bat` in the repo root, or run it from a terminal:
-```bat
-.\start-server.bat
-```
-The script opens the toolkit in your default browser and starts the Python server in one step. Python 3 must be installed and on your PATH.
+Double-click `start-server.bat` in the repo root — it opens the browser and starts the server in one step. Node.js must be installed and on your PATH.
 
 ## Known limitations
 
@@ -112,7 +111,7 @@ See `config.template.js` for all available options.
 
 **GitHub security features** — Secret scanning is enabled at the repository level.
 
-**Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files), Anthropic API, and Reed.co.uk API.
+**Content Security Policy (CSP)** — Configured in the HTML `<meta>` tag to restrict resource loading and prevent injection attacks. It permits external resources only from trusted sources: Google Fonts (CSS and font files) and Anthropic API. The Reed API is not listed because the browser never connects to Reed directly — `server.js` proxies those calls server-side.
 
 ## Testing
 

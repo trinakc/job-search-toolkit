@@ -364,10 +364,14 @@ describe('fetchReedJobs', () => {
     expect(results).toEqual(mockResults);
   });
 
-  // ── Test 2: Correct endpoint URL ────────────────────────────────────────────
-  // Verifies the function calls exactly the right Reed API base URL.
-  // A typo here would silently return wrong results or a 404.
-  test('API call uses the correct Reed endpoint', async () => {
+  // ── Test 2: Correct proxy endpoint URL ──────────────────────────────────────
+  // Verifies the function calls the LOCAL PROXY path rather than Reed directly.
+  //
+  // WHY /api/reed/search and not https://www.reed.co.uk/...?
+  // Reed's API does not send CORS headers, so browsers block direct calls to it.
+  // fetchReedJobs() calls the same-origin proxy endpoint (/api/reed/search) instead.
+  // server.js receives the request and forwards it server-side to Reed — no CORS issue.
+  test('API call uses the local proxy endpoint (not Reed directly)', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ results: [] })
@@ -377,13 +381,18 @@ describe('fetchReedJobs', () => {
 
     // First argument to fetch() is the URL — extract it from the mock call record
     const calledUrl = global.fetch.mock.calls[0][0];
-    expect(calledUrl).toContain('https://www.reed.co.uk/api/1.0/search');
+
+    // Must call the local proxy, not Reed directly — direct calls would be CORS-blocked
+    expect(calledUrl).toContain('/api/reed/search');
+
+    // Must NOT call Reed directly from the browser
+    expect(calledUrl).not.toContain('www.reed.co.uk');
   });
 
   // ── Test 3: Query parameters ─────────────────────────────────────────────────
-  // Verifies both search parameters make it into the request URL correctly.
-  // Reed ignores missing params gracefully but returns irrelevant results —
-  // we want to confirm the search values are actually sent.
+  // Verifies both search parameters make it into the proxy URL correctly.
+  // The proxy forwards the same query string to Reed, so if params are missing
+  // here they will also be missing in the actual Reed request.
   test('keywords and locationName params are passed correctly in the request URL', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -394,9 +403,10 @@ describe('fetchReedJobs', () => {
 
     const calledUrl = global.fetch.mock.calls[0][0];
 
-    // Parse the URL so we can inspect query params without worrying about
-    // exact encoding differences (%20 vs + for spaces, etc.)
-    const parsedUrl = new URL(calledUrl);
+    // The URL is a relative path (/api/reed/search?...) so new URL() needs a base.
+    // We supply a dummy base so URLSearchParams can parse the query string correctly.
+    // This handles encoding differences (%20 vs + for spaces) transparently.
+    const parsedUrl = new URL(calledUrl, 'http://localhost:8000');
     expect(parsedUrl.searchParams.get('keywords')).toBe('engineering manager');
     expect(parsedUrl.searchParams.get('locationName')).toBe('Dublin');
   });
