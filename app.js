@@ -10,8 +10,8 @@ if (typeof API_CONFIG === 'undefined') {
 // Set to false to disable/hide features that are broken or non-functional
 // This allows the app to gracefully handle incomplete features by hiding them
 const FEATURES = {
-  jobs: false,     // Live job search - disabled until API and UI are stable
-  tracker: false,  // Job tracker - hidden when live search is disabled (tracker is only populated via live search)
+  jobs: true,      // Live job search - enabled (powered by Reed.co.uk API)
+  tracker: true,   // Job tracker - enabled now that live search is available
   companies: true, // Company tracker - working
   alerts: false,   // Google alerts - disabled due to hardcoded personal search strings
   scorer: false    // Job fit scorer - disabled due to hardcoded personal profile
@@ -37,8 +37,9 @@ function getLocale() {
   return (typeof API_CONFIG !== 'undefined' && API_CONFIG.LOCALE) ? API_CONFIG.LOCALE : 'en-US';
 }
 
-const AID = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_ID) ? API_CONFIG.ADZUNA_APP_ID : '';
-const AKEY = (typeof API_CONFIG !== 'undefined' && API_CONFIG.ADZUNA_APP_KEY) ? API_CONFIG.ADZUNA_APP_KEY : '';
+// Note: Adzuna credentials (AID, AKEY) removed — replaced by Reed.co.uk integration.
+// The Reed API key is read inside fetchReedJobs() rather than at module level,
+// so test code can override global.API_CONFIG per-test without reloading the module.
 const TRACKER_KEY = 'jst_tracker_v1';
 const SEEN_KEY = 'jst_seen_v1';
 const COMPANIES_KEY = 'jst_companies_v1';
@@ -273,26 +274,142 @@ function copyAlert(btn, text) {
   });
 }
 
+// ─── fetchReedJobs ────────────────────────────────────────────────────────────
+// Pure data-fetching function for the Reed.co.uk API.
+//
+// This is the testable core of the live job search feature. It is kept separate
+// from the UI-level fetchJobs() function so it can be unit tested in isolation
+// without needing a real DOM, a running server, or a valid API key.
+//
+// WHY WE USE A LOCAL PROXY
+// ────────────────────────
+// Reed.co.uk does not send CORS headers in its API responses. If the browser
+// called Reed directly, the browser would block the response. Instead, this
+// function calls the local proxy endpoint (/api/reed/search), which is the same
+// origin as the app (no CORS check). server.js receives that request and forwards
+// it server-side to Reed — server-to-server HTTPS calls are not CORS-restricted.
+//
+// PROXY ENDPOINT
+// ──────────────
+//   Browser calls:  GET /api/reed/search?keywords=...&locationName=...
+//   Proxy forwards: GET https://www.reed.co.uk/api/1.0/search?keywords=...&locationName=...
+//   See server.js for the proxy implementation.
+//
+// AUTH
+// ────
+// Reed uses HTTP Basic Auth: API key as username, empty string as password.
+// Header format: Authorization: Basic <base64(apiKey + ':')>
+// The colon separator is required by the HTTP Basic Auth spec (RFC 7617).
+// This header is built here and forwarded by the proxy to Reed unchanged.
+//
+// Reed API response shape (relevant fields only):
+//   {
+//     results: [
+//       {
+//         jobId:          number,   // Unique job identifier
+//         jobTitle:       string,   // e.g. "Delivery Manager"
+//         employerName:   string,   // e.g. "Acme Corp"
+//         locationName:   string,   // e.g. "Dublin"
+//         minimumSalary:  number,   // GBP — Reed is a UK job board (salaries in £)
+//         maximumSalary:  number,   // GBP
+//         date:           string,   // ISO 8601 posting date
+//         jobDescription: string,   // Plain text description
+//         jobUrl:         string,   // Direct link to the Reed job listing
+//       },
+//       ...
+//     ]
+//   }
+//
+// @param {string} keywords     - Job title / keyword (e.g. 'delivery manager')
+// @param {string} locationName - Location (e.g. 'Ireland', 'Dublin')
+// @returns {Promise<Array>} Resolves to the results array from the Reed API
+// @throws {Error} If the API key is missing or the proxy/API returns a non-200 status
+async function fetchReedJobs(keywords, locationName) {
+  // Read the API key from config inside the function — not at module level.
+  // This ensures test code can set global.API_CONFIG before calling and see the change,
+  // without needing to reload the module between tests.
+  const reedApiKey = (typeof API_CONFIG !== 'undefined' && API_CONFIG.REED_API_KEY)
+    ? API_CONFIG.REED_API_KEY
+    : '';
+
+  // Guard: fail early with a clear message if no key is configured.
+  // Without a key, the proxy would forward an empty Authorization header and Reed
+  // would return 401, but throwing here gives a clearer error and avoids the round trip.
+  if (!reedApiKey) {
+    throw new Error('Reed API key is not configured. Add REED_API_KEY to config.js.');
+  }
+
+  // Build the Basic Auth credential string: base64-encode "apiKey:" (key + colon + empty password).
+  // btoa() is available in all modern browsers and in jsdom (the Jest test environment).
+  // No Node.js Buffer fallback needed — this code runs in browser/jsdom only.
+  const credentials = btoa(reedApiKey + ':');
+
+  // Build the proxy URL as a relative path — same origin as the app, so no CORS check.
+  // URLSearchParams handles encoding: spaces become '+', special chars become %XX.
+  // The proxy (server.js) strips the /api/reed prefix and forwards to Reed with the
+  // same query string.
+  const params = new URLSearchParams({ keywords, locationName });
+  const proxyUrl = '/api/reed/search?' + params.toString();
+
+  // Make the authenticated request to the local proxy.
+  // The proxy forwards the Authorization header to Reed unchanged.
+  const response = await fetch(proxyUrl, {
+    headers: {
+      // Standard HTTP Basic Auth format: "Basic <base64encodedCredentials>"
+      // server.js forwards this header to Reed as-is
+      'Authorization': 'Basic ' + credentials
+    }
+  });
+
+  // Surface API errors so the UI layer (fetchJobs) can catch them and show a message.
+  // Without this check, a 401 or 500 response would return response.ok = false and
+  // calling .json() might return an error body rather than the results array.
+  if (!response.ok) {
+    throw new Error(`Reed API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  // Reed wraps results in a 'results' array — return it directly, or an empty array
+  // if the response is valid JSON but contains no results property.
+  return data.results || [];
+}
+
+// ─── fetchJobs ────────────────────────────────────────────────────────────────
+// UI-level function: reads form values, calls fetchReedJobs, and renders job cards.
+// The try/catch here is intentional — fetchReedJobs throws on API errors and
+// missing config, and we want to show a friendly message rather than a raw exception.
+//
+// NOTE: Reed.co.uk is a UK job board — salaries are displayed in GBP (£), not EUR (€).
+// This is an API limitation. Reed does not provide Irish-specific salary data in EUR.
 async function fetchJobs() {
+  // Read the current form values from the search controls
   const role = document.getElementById('role-filter').value;
   const loc = document.getElementById('location-filter').value;
   const btn = document.getElementById('fetch-btn');
   const list = document.getElementById('jobs-list');
-  btn.disabled = true; btn.textContent = 'Searching...';
-  list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Fetching live jobs from Adzuna...</div>';
 
-  const where = loc === 'ireland' ? 'ireland' : encodeURIComponent(loc);
-  const url = `https://api.adzuna.com/v1/api/jobs/ie/search/1?app_id=${AID}&app_key=${AKEY}&results_per_page=20&what=${encodeURIComponent(role)}&where=${where}&content-type=application/json`;
+  // Disable the button and show a loading spinner while the request is in flight
+  btn.disabled = true; btn.textContent = 'Searching...';
+  list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Fetching live jobs from Reed...</div>';
+
+  // The location dropdown uses 'ireland' as the "All Ireland" option value.
+  // Reed accepts 'Ireland' as a valid locationName for country-wide search.
+  // Convert the dropdown value to a display-friendly location name.
+  const locationName = loc === 'ireland' ? 'Ireland' : loc.charAt(0).toUpperCase() + loc.slice(1);
 
   try {
-    const res = await fetch(url);
-    const data = await res.json();
-    const jobs = data.results || [];
+    // Delegate the actual HTTP call to fetchReedJobs — it handles auth, URL construction,
+    // and error propagation. We just handle the UI side here.
+    const jobs = await fetchReedJobs(role, locationName);
 
+    // Track which jobs the user has already seen in previous searches.
+    // Reed uses numeric jobId — store it as-is (JSON.stringify handles numbers fine).
     const seen = getSeen();
-    const newIds = jobs.map(j => j.id).filter(id => !seen.includes(id));
-    saveSeen([...new Set([...seen, ...jobs.map(j => j.id)])]);
+    const newIds = jobs.map(j => j.jobId).filter(id => !seen.includes(id));
+    saveSeen([...new Set([...seen, ...jobs.map(j => j.jobId)])]);
 
+    // Update the "last fetched" timestamp in the UI
     document.getElementById('last-fetched').textContent =
       'Last fetched: ' + new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 
@@ -305,36 +422,58 @@ async function fetchJobs() {
     const newCount = newIds.length;
     const summary = `<div class="results-summary">Showing <span>${jobs.length}</span> roles${newCount > 0 ? ' &middot; <span style="color:var(--accent)">' + newCount + ' new since last search</span>' : ''}</div>`;
 
+    // Build one card per job. Reed field names differ from Adzuna — see field mapping below:
+    //   Reed field       → displayed as
+    //   job.jobId        → card ID and tracker key
+    //   job.jobTitle     → job title heading
+    //   job.employerName → company name in meta line
+    //   job.locationName → location in meta line
+    //   job.minimumSalary / job.maximumSalary → salary range (GBP, shown as £xxk–£xxk)
+    //   job.date         → posting date in meta line
+    //   job.jobDescription → truncated description text
+    //   job.jobUrl       → link to full listing on Reed
     const cards = jobs.map(job => {
-      const isNew = newIds.includes(job.id);
-      const isTracked = !!tracker[job.id];
-      const company = job.company?.display_name || '';
-      const location = job.location?.display_name || '';
-      const salary = job.salary_min && job.salary_max
-        ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
-        : '';
-      const posted = job.created
-        ? ' &middot; ' + new Date(job.created).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
-        : '';
-      const desc = job.description
-        ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
-        : '';
-      const safeTitle = (job.title || '').replace(/'/g, "\\'");
-      const safeCompany = company.replace(/'/g, "\\'");
-      const safeUrl = (job.redirect_url || '').replace(/'/g, "\\'");
+      const isNew = newIds.includes(job.jobId);
+      const isTracked = !!tracker[job.jobId];
+      const company = job.employerName || '';
+      const location = job.locationName || '';
 
-      return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.id}">
+      // Reed salaries are in GBP — display with £ symbol.
+      // This is an API limitation (Reed is a UK board); salaries may not reflect
+      // Irish market rates and do not convert to EUR automatically.
+      const salary = job.minimumSalary && job.maximumSalary
+        ? ' &middot; \u00a3' + Math.round(job.minimumSalary / 1000) + 'k\u2013\u00a3' + Math.round(job.maximumSalary / 1000) + 'k'
+        : '';
+
+      // Reed uses 'date' (not 'created') for the posting date
+      const posted = job.date
+        ? ' &middot; ' + new Date(job.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
+        : '';
+
+      // Strip any HTML tags from the description (Reed sometimes includes them),
+      // then truncate to a readable preview length
+      const desc = job.jobDescription
+        ? job.jobDescription.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
+        : '';
+
+      // Escape single quotes in string values used in inline onclick attributes.
+      // Without this, a company name like "O'Brien Consulting" would break the HTML.
+      const safeTitle = (job.jobTitle || '').replace(/'/g, "\\'");
+      const safeCompany = company.replace(/'/g, "\\'");
+      const safeUrl = (job.jobUrl || '').replace(/'/g, "\\'");
+
+      return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.jobId}">
         <div class="job-header">
-          <div class="job-title">${job.title}</div>
+          <div class="job-title">${job.jobTitle}</div>
           ${isNew ? '<span class="new-badge">New</span>' : ''}
         </div>
         <div class="job-meta">${company}${location ? ' &middot; ' + location : ''}${salary}${posted}</div>
         <div class="job-desc">${desc}</div>
         <div class="job-actions">
-          <a class="job-link" href="${job.redirect_url}" target="_blank">View role &rarr;</a>
+          <a class="job-link" href="${job.jobUrl}" target="_blank">View role &rarr;</a>
           ${isTracked
           ? '<span class="tracked-label">Tracked</span>'
-          : `<button class="track-btn" onclick="addToTracker('${job.id}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
+          : `<button class="track-btn" onclick="addToTracker('${job.jobId}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
         }
         </div>
       </div>`;
@@ -342,12 +481,21 @@ async function fetchJobs() {
 
     list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
   } catch (e) {
-    list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your internet connection and try again.</div>';
+    // fetchReedJobs throws on missing key or non-200 response — catch and show user-facing message
+    list.innerHTML = '<div class="empty-state empty-state--error">Error fetching jobs. Check your internet connection and API key, then try again.</div>';
   }
   btn.disabled = false; btn.textContent = 'Search';
 }
 
+// ─── fetchAllJobs ─────────────────────────────────────────────────────────────
+// "Search all titles" mode: fires one Reed API request per job title in parallel,
+// deduplicates the combined results, and renders everything sorted newest-first.
+//
+// Each individual request is caught separately (.catch(() => [])) so that a
+// single failed title doesn't wipe out results from the others.
 async function fetchAllJobs() {
+  // The set of core job titles to search across — covers the main categories
+  // relevant to delivery/engineering management roles in Ireland
   const coreTitles = [
     'delivery manager',
     'engineering manager',
@@ -358,38 +506,41 @@ async function fetchAllJobs() {
     'release manager',
     'development manager'
   ];
+
   const loc = document.getElementById('location-filter').value;
   const btn = document.getElementById('fetch-all-btn');
   const list = document.getElementById('jobs-list');
   btn.disabled = true; btn.textContent = 'Searching...';
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Searching all titles — this may take a moment...</div>';
 
-  const where = loc === 'ireland' ? 'ireland' : encodeURIComponent(loc);
+  // Normalise the location dropdown value to a Reed-friendly location name
+  const locationName = loc === 'ireland' ? 'Ireland' : loc.charAt(0).toUpperCase() + loc.slice(1);
 
   try {
+    // Fire all requests in parallel — each calls fetchReedJobs which handles auth.
+    // Individual title failures are silently caught and return [] so the rest succeed.
     const requests = coreTitles.map(title =>
-      fetch(`https://api.adzuna.com/v1/api/jobs/ie/search/1?app_id=${AID}&app_key=${AKEY}&results_per_page=10&what=${encodeURIComponent(title)}&where=${where}&content-type=application/json`)
-        .then(r => r.json())
-        .then(d => d.results || [])
-        .catch(() => [])
+      fetchReedJobs(title, locationName).catch(() => [])
     );
 
     const results = await Promise.all(requests);
     const seen = getSeen();
+
+    // Deduplicate by jobId — the same listing may appear under multiple search titles
     const seenIds = new Set();
     const allJobs = [];
-
     results.flat().forEach(job => {
-      if (!seenIds.has(job.id)) {
-        seenIds.add(job.id);
+      if (!seenIds.has(job.jobId)) {
+        seenIds.add(job.jobId);
         allJobs.push(job);
       }
     });
 
-    allJobs.sort((a, b) => new Date(b.created) - new Date(a.created));
+    // Sort combined results newest-first using Reed's 'date' field
+    allJobs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const newIds = allJobs.map(j => j.id).filter(id => !seen.includes(id));
-    saveSeen([...new Set([...seen, ...allJobs.map(j => j.id)])]);
+    const newIds = allJobs.map(j => j.jobId).filter(id => !seen.includes(id));
+    saveSeen([...new Set([...seen, ...allJobs.map(j => j.jobId)])]);
 
     document.getElementById('last-fetched').textContent =
       'Last fetched: ' + new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
@@ -403,36 +554,38 @@ async function fetchAllJobs() {
     const newCount = newIds.length;
     const summary = `<div class="results-summary">Showing <span>${allJobs.length}</span> roles across all titles${newCount > 0 ? ' &middot; <span style="color:var(--accent)">' + newCount + ' new since last search</span>' : ''}</div>`;
 
+    // Card rendering — same Reed field mapping as fetchJobs() above.
+    // Salaries are in GBP (£) — Reed is a UK job board; EUR is not available.
     const cards = allJobs.map(job => {
-      const isNew = newIds.includes(job.id);
-      const isTracked = !!tracker[job.id];
-      const company = job.company?.display_name || '';
-      const location = job.location?.display_name || '';
-      const salary = job.salary_min && job.salary_max
-        ? ' &middot; \u20ac' + Math.round(job.salary_min / 1000) + 'k\u2013\u20ac' + Math.round(job.salary_max / 1000) + 'k'
+      const isNew = newIds.includes(job.jobId);
+      const isTracked = !!tracker[job.jobId];
+      const company = job.employerName || '';
+      const location = job.locationName || '';
+      const salary = job.minimumSalary && job.maximumSalary
+        ? ' &middot; \u00a3' + Math.round(job.minimumSalary / 1000) + 'k\u2013\u00a3' + Math.round(job.maximumSalary / 1000) + 'k'
         : '';
-      const posted = job.created
-        ? ' &middot; ' + new Date(job.created).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
+      const posted = job.date
+        ? ' &middot; ' + new Date(job.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
         : '';
-      const desc = job.description
-        ? job.description.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
+      const desc = job.jobDescription
+        ? job.jobDescription.replace(/<[^>]+>/g, '').substring(0, 220) + '...'
         : '';
-      const safeTitle = (job.title || '').replace(/'/g, "\\'");
+      const safeTitle = (job.jobTitle || '').replace(/'/g, "\\'");
       const safeCompany = company.replace(/'/g, "\\'");
-      const safeUrl = (job.redirect_url || '').replace(/'/g, "\\'");
+      const safeUrl = (job.jobUrl || '').replace(/'/g, "\\'");
 
-      return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.id}">
+      return `<div class="job-card${isNew ? ' is-new' : ''}" id="jcard-${job.jobId}">
         <div class="job-header">
-          <div class="job-title">${job.title}</div>
+          <div class="job-title">${job.jobTitle}</div>
           ${isNew ? '<span class="new-badge">New</span>' : ''}
         </div>
         <div class="job-meta">${company}${location ? ' &middot; ' + location : ''}${salary}${posted}</div>
         <div class="job-desc">${desc}</div>
         <div class="job-actions">
-          <a class="job-link" href="${job.redirect_url}" target="_blank">View role &rarr;</a>
+          <a class="job-link" href="${job.jobUrl}" target="_blank">View role &rarr;</a>
           ${isTracked
           ? '<span class="tracked-label">Tracked</span>'
-          : `<button class="track-btn" onclick="addToTracker('${job.id}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
+          : `<button class="track-btn" onclick="addToTracker('${job.jobId}','${safeTitle}','${safeCompany}','${safeUrl}')">+ Track</button>`
         }
         </div>
       </div>`;
@@ -440,7 +593,7 @@ async function fetchAllJobs() {
 
     list.innerHTML = summary + '<div class="jobs-list">' + cards + '</div>';
   } catch (e) {
-    list.innerHTML = '<div class="empty-state" style="color:#B03A2E;">Error fetching jobs. Check your connection and try again.</div>';
+    list.innerHTML = '<div class="empty-state empty-state--error">Error fetching jobs. Check your connection and try again.</div>';
   }
 
   btn.disabled = false; btn.textContent = 'Search all titles';
@@ -561,7 +714,7 @@ async function scoreJob() {
       </div>
     </div>`;
   } catch (e) {
-    result.innerHTML = '<div class="loading-state" style="color:#B03A2E;">Something went wrong — check your connection and try again.</div>';
+    result.innerHTML = '<div class="loading-state empty-state--error">Something went wrong — check your connection and try again.</div>';
   }
   btn.disabled = false; btn.textContent = 'Analyse fit';
 }
@@ -582,6 +735,7 @@ if (typeof module !== 'undefined') {
     updateNote,
     isFeatureEnabled,
     getDefaultTab,
-    getLocale
+    getLocale,
+    fetchReedJobs  // Exported so Jest unit tests can call it directly
   };
 }

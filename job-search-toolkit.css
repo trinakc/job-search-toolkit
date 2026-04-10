@@ -334,6 +334,12 @@ select:focus {
   padding: 2rem 0;
 }
 
+/* Error variant of the empty state — used when an API call fails.
+   Avoids inline style="color:..." which violates the style-src CSP. */
+.empty-state--error {
+  color: #B03A2E;
+}
+
 .loading-state {
   font-size: 14px;
   color: var(--text2);

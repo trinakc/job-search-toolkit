@@ -1,13 +1,13 @@
 // Jest test suite for app.js
 // We import only the pure logic functions that don't touch the DOM or external APIs.
 // These are the functions worth unit testing because they have clear inputs and outputs.
-// Define a mock API_CONFIG so app.js doesn't warn about missing config during tests
+// Define a mock API_CONFIG so app.js doesn't warn about missing config during tests.
+// We include a test Reed API key here so fetchReedJobs tests can override it per-test.
 global.API_CONFIG = {
-  ADZUNA_APP_ID: 'test_id',
-  ADZUNA_APP_KEY: 'test_key'
+  REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -126,21 +126,17 @@ describe('updateNote', () => {
 });
 
 describe('isFeatureEnabled', () => {
-  test('returns false for disabled jobs feature by default', () => {
-    expect(isFeatureEnabled('jobs')).toBe(false);
-  });
-
-  test('returns true for enabled jobs feature when the flag is enabled', () => {
-    const original = FEATURES.jobs;
-    FEATURES.jobs = true;
-
+  // FEATURES.jobs is now true — Reed API integration enabled live job search
+  test('returns true for jobs feature now that Reed API is enabled', () => {
     expect(isFeatureEnabled('jobs')).toBe(true);
-
-    FEATURES.jobs = original;
   });
 
   test('returns false for unknown features', () => {
     expect(isFeatureEnabled('unknown')).toBe(false);
+  });
+
+  test('returns true for companies feature', () => {
+    expect(isFeatureEnabled('companies')).toBe(true);
   });
 });
 
@@ -313,5 +309,163 @@ describe('filterCompanies', () => {
     const filtered = filterCompanies([ALPHA, BETA, GAMMA], { tag: 'EM' });
     const sorted   = sortCompanies(filtered, 'alpha-desc');
     expect(sorted.map(c => c.name)).toEqual(['Beta Ltd', 'Alpha Corp']);
+  });
+});
+
+// ─── fetchReedJobs tests ──────────────────────────────────────────────────────
+// fetchReedJobs(keywords, locationName) is the pure data-fetching layer for the
+// Reed.co.uk API. It takes search parameters, builds an authenticated HTTP request,
+// and returns the results array from the Reed API response.
+//
+// These tests mock global.fetch so no real network calls are made — the tests run
+// fast, offline, and deterministically regardless of Reed API availability.
+//
+// Reed API docs: https://www.reed.co.uk/developers/jobseeker
+// Auth: HTTP Basic Auth — API key as username, empty string as password
+
+describe('fetchReedJobs', () => {
+  // Save and restore global.fetch around each test so mocks don't leak
+  let originalFetch;
+
+  beforeEach(() => {
+    // Capture the real fetch (if present) so we can restore it after each test
+    originalFetch = global.fetch;
+
+    // Ensure API_CONFIG has a test Reed key before every test.
+    // Individual tests can override REED_API_KEY to test edge cases.
+    global.API_CONFIG = { REED_API_KEY: 'test-reed-api-key' };
+  });
+
+  afterEach(() => {
+    // Always restore fetch so other test suites start clean
+    global.fetch = originalFetch;
+  });
+
+  // ── Test 1: Successful response ─────────────────────────────────────────────
+  // The core happy path: API returns results, function returns them to the caller.
+  // Confirms that fetchReedJobs correctly unwraps the 'results' property from the
+  // Reed API JSON envelope.
+  test('successful response returns the results array from the Reed API', async () => {
+    // Define the shape of data Reed would return for a real search
+    const mockResults = [
+      { jobId: 101, jobTitle: 'Delivery Manager', employerName: 'Test Corp', locationName: 'Dublin' }
+    ];
+
+    // Replace global.fetch with a Jest spy that immediately resolves with mock data.
+    // This simulates a successful 200 OK response from Reed without hitting the network.
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,                                           // HTTP 200 OK
+      json: () => Promise.resolve({ results: mockResults })  // Reed response envelope
+    });
+
+    const results = await fetchReedJobs('delivery manager', 'Ireland');
+
+    // The function should unwrap and return the array — not the envelope object
+    expect(results).toEqual(mockResults);
+  });
+
+  // ── Test 2: Correct proxy endpoint URL ──────────────────────────────────────
+  // Verifies the function calls the LOCAL PROXY path rather than Reed directly.
+  //
+  // WHY /api/reed/search and not https://www.reed.co.uk/...?
+  // Reed's API does not send CORS headers, so browsers block direct calls to it.
+  // fetchReedJobs() calls the same-origin proxy endpoint (/api/reed/search) instead.
+  // server.js receives the request and forwards it server-side to Reed — no CORS issue.
+  test('API call uses the local proxy endpoint (not Reed directly)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ results: [] })
+    });
+
+    await fetchReedJobs('delivery manager', 'Ireland');
+
+    // First argument to fetch() is the URL — extract it from the mock call record
+    const calledUrl = global.fetch.mock.calls[0][0];
+
+    // Must call the local proxy, not Reed directly — direct calls would be CORS-blocked
+    expect(calledUrl).toContain('/api/reed/search');
+
+    // Must NOT call Reed directly from the browser
+    expect(calledUrl).not.toContain('www.reed.co.uk');
+  });
+
+  // ── Test 3: Query parameters ─────────────────────────────────────────────────
+  // Verifies both search parameters make it into the proxy URL correctly.
+  // The proxy forwards the same query string to Reed, so if params are missing
+  // here they will also be missing in the actual Reed request.
+  test('keywords and locationName params are passed correctly in the request URL', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ results: [] })
+    });
+
+    await fetchReedJobs('engineering manager', 'Dublin');
+
+    const calledUrl = global.fetch.mock.calls[0][0];
+
+    // The URL is a relative path (/api/reed/search?...) so new URL() needs a base.
+    // We supply a dummy base so URLSearchParams can parse the query string correctly.
+    // This handles encoding differences (%20 vs + for spaces) transparently.
+    const parsedUrl = new URL(calledUrl, 'http://localhost:8000');
+    expect(parsedUrl.searchParams.get('keywords')).toBe('engineering manager');
+    expect(parsedUrl.searchParams.get('locationName')).toBe('Dublin');
+  });
+
+  // ── Test 4: HTTP Basic Auth header ──────────────────────────────────────────
+  // Verifies the Authorization header is constructed correctly.
+  // Reed requires: Authorization: Basic <base64(apiKey + ':')>
+  // The colon separator is required by the HTTP Basic Auth spec (RFC 7617) —
+  // it separates username from password (password is empty for Reed).
+  test('authentication uses HTTP Basic Auth with the API key as username and empty password', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ results: [] })
+    });
+
+    await fetchReedJobs('delivery manager', 'Ireland');
+
+    // Second argument to fetch() is the options object (headers, method, etc.)
+    const calledOptions = global.fetch.mock.calls[0][1];
+
+    // Compute the expected Base64 value: btoa('test-reed-api-key:')
+    // The colon with no password after it matches Reed's auth requirement
+    const expectedCredentials = btoa('test-reed-api-key:');
+    expect(calledOptions.headers['Authorization']).toBe('Basic ' + expectedCredentials);
+  });
+
+  // ── Test 5: Missing API key ──────────────────────────────────────────────────
+  // Verifies graceful handling when REED_API_KEY is absent or empty.
+  // Without a key, Reed returns 401 — but we fail early before making any
+  // network request, which is faster and gives a clearer error message.
+  test('missing or empty API key throws an error and does not call fetch', async () => {
+    // Override the key to empty — simulates a user who hasn't added their key yet
+    global.API_CONFIG.REED_API_KEY = '';
+
+    // Install a spy so we can assert fetch was NOT called
+    global.fetch = jest.fn();
+
+    // The function should throw — callers (fetchJobs UI function) catch this and
+    // show a user-facing error message rather than letting an unhandled rejection bubble up
+    await expect(fetchReedJobs('delivery manager', 'Ireland')).rejects.toThrow();
+
+    // No network call should have been made — fail before reaching the fetch line
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  // ── Test 6: API error response ───────────────────────────────────────────────
+  // Verifies that a non-200 response from Reed is surfaced as a thrown error.
+  // Without this guard, the function would try to call .json() on an error response,
+  // return undefined results, and the UI would silently show zero jobs.
+  test('non-200 API response throws an error so the caller can show a user-facing message', async () => {
+    // Simulate a 401 Unauthorized (what Reed returns if the key is invalid)
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,    // response.ok is false for any status outside 200-299
+      status: 401,
+      statusText: 'Unauthorized'
+    });
+
+    // The function must throw — the UI fetchJobs() function catches this and
+    // renders an error message to the user instead of an empty job list
+    await expect(fetchReedJobs('delivery manager', 'Ireland')).rejects.toThrow();
   });
 });

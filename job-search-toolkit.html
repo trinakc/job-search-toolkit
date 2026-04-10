@@ -7,10 +7,13 @@
   <!-- Content Security Policy: Restricts resource loading to approved sources only.
        - default-src 'self': Only allow resources from the same origin by default
        - style-src/font-src: Allow Google Fonts (CSS + font files) for typography
-       - connect-src: Only allow API calls to authorized services (Anthropic, Adzuna)
+       - connect-src: Only allow API calls to authorized services.
+           'self' covers the Reed proxy at /api/reed/search (served by server.js).
+           The browser never calls Reed directly — server.js proxies it server-side,
+           which is why www.reed.co.uk does not need to appear here.
        - script-src 'unsafe-inline': Required for existing inline script tags (config.js injection)
        This mitigates XSS and injection attacks by blocking unauthorized external resources. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.adzuna.com; script-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com; script-src 'self' 'unsafe-inline'">
   <title>Job Search Toolkit</title>
   <link
     href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
@@ -29,6 +32,8 @@
   <div class="layout">
     <nav>
       <div class="nav-label">Tools</div>
+      <!-- Live jobs nav button — shown when FEATURES.jobs is true (app-dom.js hides it otherwise) -->
+      <button onclick="show('jobs', this)">Live jobs</button>
       <button onclick="show('companies', this)">Company tracker</button>
       <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
       <button onclick="show('alerts', this)">Google alerts</button>
@@ -39,8 +44,9 @@
 
       <div id="jobs" class="panel">
         <h2>Live jobs</h2>
-        <p class="panel-desc">Pulls live Irish roles from Adzuna. New roles (ones you haven't seen before) are
-          highlighted with a green border. Hit "+ Track" on anything worth following up.</p>
+        <p class="panel-desc">Pulls live Irish roles from Reed.co.uk. New roles (ones you haven't seen before) are
+          highlighted with a green border. Hit "+ Track" on anything worth following up.
+          Salaries are shown in GBP (£) — Reed is a UK job board.</p>
         <div class="search-controls">
           <select id="role-filter">
             <optgroup label="Delivery Management">

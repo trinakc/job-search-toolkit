@@ -4,6 +4,7 @@
   "description": "A customizable single-file HTML job search dashboard for tracking applications, discovering opportunities, and analyzing job fit.",
   "main": "config.js",
   "scripts": {
+    "start": "node server.js",
     "lint:js": "eslint app.js",
     "lint:css": "stylelint job-search-toolkit.html",
     "lint": "npm run lint:js && npm run lint:css",
