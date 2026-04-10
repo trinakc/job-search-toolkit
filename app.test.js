@@ -389,11 +389,16 @@ describe('fetchReedJobs', () => {
     expect(calledUrl).not.toContain('www.reed.co.uk');
   });
 
-  // ── Test 3: Query parameters ─────────────────────────────────────────────────
-  // Verifies both search parameters make it into the proxy URL correctly.
-  // The proxy forwards the same query string to Reed, so if params are missing
-  // here they will also be missing in the actual Reed request.
-  test('keywords and locationName params are passed correctly in the request URL', async () => {
+  // ── Test 3: Phrase-quoted keywords ───────────────────────────────────────────
+  // Verifies that keywords are wrapped in double-quotes in the request URL so
+  // Reed treats them as an exact phrase rather than individual OR-matched terms.
+  //
+  // Without quotes, "engineering manager" returns any job mentioning "engineering"
+  // OR "manager" anywhere in the title or description — a huge irrelevant result set.
+  // With quotes, only jobs containing the exact phrase are returned.
+  //
+  // URLSearchParams.get() decodes %22 back to " so we can assert the raw value.
+  test('keywords are phrase-quoted in the request URL for exact-match search', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ results: [] })
@@ -403,12 +408,32 @@ describe('fetchReedJobs', () => {
 
     const calledUrl = global.fetch.mock.calls[0][0];
 
-    // The URL is a relative path (/api/reed/search?...) so new URL() needs a base.
-    // We supply a dummy base so URLSearchParams can parse the query string correctly.
-    // This handles encoding differences (%20 vs + for spaces) transparently.
+    // The URL is a relative path — supply a dummy base so URLSearchParams can parse it.
     const parsedUrl = new URL(calledUrl, 'http://localhost:8000');
-    expect(parsedUrl.searchParams.get('keywords')).toBe('engineering manager');
+
+    // Keywords must be wrapped in quotes: '"engineering manager"' not 'engineering manager'
+    expect(parsedUrl.searchParams.get('keywords')).toBe('"engineering manager"');
+    // locationName is passed unchanged — no quoting applied
     expect(parsedUrl.searchParams.get('locationName')).toBe('Dublin');
+  });
+
+  // ── Test 3b: Single-keyword phrase quoting ────────────────────────────────────
+  // Quoting applies to ALL keywords, including single words. This ensures consistent
+  // exact-match behaviour and guards against regression where the fix is only applied
+  // to multi-word terms.
+  test('single-word keywords are also phrase-quoted for consistent exact-match behaviour', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ results: [] })
+    });
+
+    await fetchReedJobs('manager', 'Ireland');
+
+    const calledUrl = global.fetch.mock.calls[0][0];
+    const parsedUrl = new URL(calledUrl, 'http://localhost:8000');
+
+    // Even a single word must be wrapped: '"manager"' not 'manager'
+    expect(parsedUrl.searchParams.get('keywords')).toBe('"manager"');
   });
 
   // ── Test 4: HTTP Basic Auth header ──────────────────────────────────────────

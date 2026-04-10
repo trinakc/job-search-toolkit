@@ -95,7 +95,7 @@ This project was built to a deliberate scope. The following are known gaps, not 
 
 - **Performance** — no benchmarking or load testing has been done; this is a single-user local tool and performance has not been a priority
 - **Test coverage** — UI smoke tests cover happy paths; edge cases and error states are not fully covered by automation yet
-- **Adzuna CORS issue** — live search is pending resolution of the Ireland API endpoint, which limits the tracker functionality
+- **Reed keyword search breadth** — phrase-matching is applied by default but Reed searches titles and descriptions, so results may include roles where the phrase appears only in the description rather than the job title
 - **Single-user only** — localStorage means no portability across devices or browsers; not designed for multi-user use
 - **No accessibility audit** — not yet tested with screen readers or assessed against WCAG standards
 - **AI involvement is self-reported** — the Notion tracking of Generated / Assisted / None is best-effort, not automated
