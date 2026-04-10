@@ -108,6 +108,20 @@ test('add company modal opens and saves a new company correctly', async ({ page 
 // FEATURES.jobs is now true in app.js, so the Live Jobs nav button and panel
 // are visible — this test confirms that end-to-end wiring is correct.
 test('live jobs panel is visible, search returns results, and job cards render', async ({ page }) => {
+  // In CI, config.js is git-ignored and does not exist, so API_CONFIG is undefined
+  // when the page loads. fetchReedJobs() throws early on the missing-key guard
+  // before making any fetch call, which means page.route() never intercepts anything
+  // and no cards render.
+  //
+  // addInitScript() runs before ALL page scripts (including config.js and app.js),
+  // so this stub is in place when fetchReedJobs() checks for the API key.
+  // Locally, config.js loads after this and defines its own `const API_CONFIG` which
+  // takes precedence — but the route intercept below catches the request regardless
+  // of what key value is used, so the real key is never actually sent to Reed.
+  await page.addInitScript(() => {
+    window.API_CONFIG = { REED_API_KEY: 'e2e-test-stub-key' };
+  });
+
   // Intercept requests to the local Reed proxy endpoint.
   // fetchReedJobs() calls /api/reed/search (same-origin) rather than Reed directly
   // because Reed's API does not send CORS headers. server.js proxies those requests
