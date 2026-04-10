@@ -94,6 +94,32 @@ Do not add comments to every line — comment what needs explaining, not what is
 - `eslint-plugin-no-secrets` runs in CI and will catch high-entropy strings — do not attempt to work around it
 - If a new external API is added, update the `connect-src` directive in the CSP meta tag in `job-search-toolkit.html`
 
+## Changelog
+ 
+After completing any ticket of type **Enhancement** or **Defect**, update `CHANGELOG.md` before committing.
+ 
+The changelog format is:
+ 
+```
+## [YYYY-MM-DD]
+ 
+### Enhancements
+- JST-xx: Title
+ 
+### Defects fixed
+- JST-xx: Title
+```
+ 
+Rules:
+- Read `CHANGELOG.md` before editing it — do not overwrite or reformat existing content
+- Check if today's date heading already exists. If it does, add the new entry under the correct sub-heading (`### Enhancements` or `### Defects fixed`). If the sub-heading does not exist yet for that date, add it.
+- If today's date heading does not exist, insert a new `## [YYYY-MM-DD]` block directly below the `---` separator, above all previous date entries
+- A ticket may appear more than once in the changelog across different dates — this is expected
+- Do not add duplicate entries within the same date block — check before inserting
+- The ticket type will be stated in the prompt as either **Enhancement** or **Defect**. **Enhancement** maps to `### Enhancements`, **Defect** maps to `### Defects fixed`
+- **Task** type tickets do not get a changelog entry
+- Do not modify the `## Known issues` section
+
 ## Branching and commits
 
 Branch naming:
