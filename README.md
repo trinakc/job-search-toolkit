@@ -24,14 +24,12 @@ A customizable HTML job search dashboard for tracking applications, discovering 
   - [Get API keys](#get-api-keys)
   - [Configure locally](#configure-locally)
   - [Run locally](#run-locally)
-- [Known issues](#known-issues)
+- [Known limitations](#known-limitations-1)
 - [Configuration](#configuration)
 - [Security](#security)
 - [Testing](#testing)
 - [CI](#ci)
-- [Working with Claude Code](#working-with-claude-code)
-- [Commits and branching](#commits-and-branching)
-- [AI involvement tracking](#ai-involvement-tracking)
+- [Contributing and AI usage](#contributing-and-ai-usage)
 - [Before committing](#before-committing)
 
 ## Why I Built This the Way I Did
@@ -288,26 +286,9 @@ The badge at the top of this file reflects the last completed run against `main`
 
 Configuration lives in `.github/workflows/ci.yml`.
 
-## Working with Claude Code
+## Contributing and AI usage
 
-When requesting a new feature, always include testing in the prompt:
-
-> "Before writing any code, write the unit tests first that describe the expected behaviour. Then implement the feature to make those tests pass."
-
-Read the tests before reading the implementation — if the tests don't clearly describe the expected behaviour in plain English, ask Claude Code to rewrite them before proceeding.
-
-## Commits and branching
-
-- Use Notion ticket numbers in commit messages: `JST-xx: description`
-- Use feature branches: `feature/JST-xx-description`, `bugfix/JST-xx`, `hotfix/JST-xx`
-- AI-generated commits include a `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>` trailer
-
-## AI involvement tracking
-
-Tracked on the [Notion project board](https://www.notion.so/3374e11bd2e780a39a39d08511a763fd?v=3374e11bd2e780e48d85000c4add0599):
-- **Generated** — Claude Code wrote the bulk of the code
-- **Assisted** — human-directed with AI support
-- **None** — written without AI involvement
+This project is developed with [Claude Code](https://claude.ai/code). All conventions — TDD workflow, commenting standards, security rules, branching and commit format, and the pre-commit checklist — are documented in [CLAUDE.md](CLAUDE.md).
 
 ## Before committing
 
