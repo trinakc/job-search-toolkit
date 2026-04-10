@@ -96,7 +96,15 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
+    // Tell the browser never to cache files from this dev server.
+    // Without this, the browser may serve a stale app.js even after you edit it,
+    // and a normal refresh won't pick up the change — only a hard refresh (Ctrl+Shift+R) would.
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
     res.end(data);
   });
 });
