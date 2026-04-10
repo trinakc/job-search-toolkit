@@ -340,11 +340,9 @@ async function fetchReedJobs(keywords, locationName) {
   }
 
   // Build the Basic Auth credential string: base64-encode "apiKey:" (key + colon + empty password).
-  // btoa() is available in both modern browsers and the jsdom Jest test environment.
-  // The Buffer fallback handles older Node environments where btoa may not be defined.
-  const credentials = (typeof btoa === 'function')
-    ? btoa(reedApiKey + ':')
-    : Buffer.from(reedApiKey + ':').toString('base64');
+  // btoa() is available in all modern browsers and in jsdom (the Jest test environment).
+  // No Node.js Buffer fallback needed — this code runs in browser/jsdom only.
+  const credentials = btoa(reedApiKey + ':');
 
   // Build the proxy URL as a relative path — same origin as the app, so no CORS check.
   // URLSearchParams handles encoding: spaces become '+', special chars become %XX.
