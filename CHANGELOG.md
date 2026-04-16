@@ -5,6 +5,11 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ---
 
+## [2026-04-16]
+
+### Enhancements
+- JST-51: Move hardcoded search titles to config.js
+
 ## [2026-04-07]
 
 ### Enhancements
