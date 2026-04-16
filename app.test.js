@@ -71,27 +71,58 @@ describe('getSeen', () => {
 });
 
 describe('getCompanies', () => {
-  test('returns default companies on first load', () => {
-    // When localStorage is empty, getCompanies() should return the DEFAULT_COMPANIES array
-    // that's hardcoded in app.js as the seed data.
-    const companies = getCompanies();
+  // A minimal company fixture — used to verify getCompanies() seeds from config correctly.
+  // Kept small so tests are readable; the real shape is the same as DEFAULT_COMPANIES in config.js.
+  const TEST_COMPANIES = [
+    { name: 'Test Corp', location: 'Dublin · Test SaaS', url: 'https://testcorp.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null }
+  ];
 
-    // Array.isArray() checks it's actually an array, not null or an object
-    expect(Array.isArray(companies)).toBe(true);
-
-    // toBeGreaterThan(0) confirms there's at least one company in the default list
-    expect(companies.length).toBeGreaterThan(0);
+  beforeEach(() => {
+    // Supply DEFAULT_COMPANIES via config so getCompanies() can seed localStorage on first load.
+    // The outer beforeEach resets localStorage; this ensures config is also in a known state.
+    global.API_CONFIG = { REED_API_KEY: 'test-reed-api-key', DEFAULT_COMPANIES: TEST_COMPANIES };
   });
 
-  test('returns stored companies from localStorage', () => {
-    // Create a minimal fake company object
-    const mock = [{ id: 'test', name: 'Test Co', meta: 'Dublin', url: 'https://test.com', tags: [] }];
-    
-    // Store it in localStorage as if the user had previously saved it
-    localStorage.setItem('jst_companies_v1', JSON.stringify(mock));
-    
-    // getCompanies() should return our mock data instead of the defaults
-    expect(getCompanies()).toEqual(mock);
+  // ── Test 1: Seeds from config on first load ───────────────────────────────────
+  // When localStorage is empty, getCompanies() should fall back to API_CONFIG.DEFAULT_COMPANIES
+  // and seed localStorage with it so the user sees their configured companies on first load.
+  test('returns companies from API_CONFIG.DEFAULT_COMPANIES when localStorage is empty', () => {
+    // localStorage is empty (reset by outer beforeEach); config has TEST_COMPANIES
+    const companies = getCompanies();
+
+    expect(companies).toEqual(TEST_COMPANIES);
+  });
+
+  // ── Test 2: Returns stored data when present ──────────────────────────────────
+  // Once the user has saved companies, getCompanies() must return their data, not the config defaults.
+  // This is the normal operating path after first load.
+  test('returns stored companies from localStorage and ignores config defaults', () => {
+    // Pre-populate localStorage as if the user had previously saved their own list
+    const stored = [{ id: 'test', name: 'Stored Co', location: 'Cork', url: 'https://stored.com', tags: [] }];
+    localStorage.setItem('jst_companies_v1', JSON.stringify(stored));
+
+    // getCompanies() should return the stored data, not TEST_COMPANIES from config
+    expect(getCompanies()).toEqual(stored);
+  });
+
+  // ── Test 3: Graceful fallback when config is missing ─────────────────────────
+  // If a user hasn't added DEFAULT_COMPANIES to config.js, getCompanies() must not crash.
+  // It returns [] and warns so the empty state in the UI is shown cleanly.
+  test('returns an empty array and logs a warning when DEFAULT_COMPANIES is missing from config', () => {
+    // Explicitly clear any companies data — makes this test self-contained regardless of
+    // what previous tests wrote to localStorage.
+    localStorage.removeItem('jst_companies_v1');
+
+    // Override config to remove DEFAULT_COMPANIES — simulates a user who hasn't configured it
+    global.API_CONFIG = { REED_API_KEY: 'test-reed-api-key' };
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const companies = getCompanies();
+
+    expect(companies).toEqual([]);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });
 
