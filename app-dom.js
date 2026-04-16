@@ -1,6 +1,54 @@
 // DOM-related functions for app.js
 // This file is loaded after app.js in the HTML
 
+// ─── initSearchModeToggle ─────────────────────────────────────────────────────
+// Sets up the Live Jobs mode toggle. Called once on DOMContentLoaded.
+//
+// Responsibilities:
+//   1. Populate the #role-suggestions <datalist> from API_CONFIG.SEARCH_TITLES so
+//      the role text input offers autocomplete suggestions.
+//   2. Update the "All configured titles" label to show the count from config, e.g.
+//      "All configured titles (8)".
+//   3. Wire up the radio change event so switching modes shows/hides the role input.
+//   4. Apply the correct initial visibility state based on the pre-checked radio.
+function initSearchModeToggle() {
+  const singleRadio    = document.getElementById('mode-single');
+  const allRadio       = document.getElementById('mode-all');
+  const roleInputWrap  = document.getElementById('role-input-wrap');
+  const allTitlesLabel = document.getElementById('all-titles-label');
+  const datalist       = document.getElementById('role-suggestions');
+
+  // Guard: if any element is missing (e.g. in a test harness), do nothing
+  if (!singleRadio || !allRadio || !roleInputWrap || !allTitlesLabel || !datalist) return;
+
+  // Populate datalist with SEARCH_TITLES from config — gives the text input
+  // autocomplete suggestions without restricting it to those values
+  const titles = (typeof API_CONFIG !== 'undefined' && Array.isArray(API_CONFIG.SEARCH_TITLES))
+    ? API_CONFIG.SEARCH_TITLES
+    : [];
+  datalist.innerHTML = titles.map(t => `<option value="${t}">`).join('');
+
+  // Update the label to show the title count: "All configured titles (8)"
+  const count = getSearchTitleCount();
+  allTitlesLabel.textContent = count > 0
+    ? `All configured titles (${count})`
+    : 'All configured titles (none configured)';
+
+  // Toggle role input visibility when the mode changes.
+  // Single mode: role input visible. All-titles mode: role input hidden.
+  function applyModeVisibility() {
+    const isAll = allRadio.checked;
+    roleInputWrap.style.display = isAll ? 'none' : '';
+  }
+
+  singleRadio.addEventListener('change', applyModeVisibility);
+  allRadio.addEventListener('change', applyModeVisibility);
+
+  // Apply initial state — the HTML defaults to single mode (checked), so the
+  // role input is visible on load. Call once to ensure JS-driven state matches HTML.
+  applyModeVisibility();
+}
+
 // ─── renderCompanyTagOptions ──────────────────────────────────────────────────
 // Populates the tag filter <select> with every unique tag across all companies.
 // Called once when the companies panel first loads.
@@ -218,6 +266,7 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     roleFilter.placeholder = API_CONFIG.ROLE_PLACEHOLDER;
   }
 
+  initSearchModeToggle();
   updateTrackerNav();
   renderCompanies();
   renderAlerts();

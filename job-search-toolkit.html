@@ -47,21 +47,38 @@
         <p class="panel-desc">Pulls live Irish roles from Reed.co.uk. New roles (ones you haven't seen before) are
           highlighted with a green border. Hit "+ Track" on anything worth following up.
           Salaries are shown in GBP (£) — Reed is a UK job board.</p>
+        <!-- Mode toggle: controls whether Search fires a single-keyword or all-titles search.
+             The role input row shows/hides based on the selected mode (wired in app-dom.js). -->
+        <div class="search-mode-toggle">
+          <label class="mode-option">
+            <input type="radio" name="search-mode" id="mode-single" value="single" checked>
+            <span>Single role</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="search-mode" id="mode-all" value="all">
+            <!-- Title count is injected by initSearchModeToggle() in app-dom.js -->
+            <span id="all-titles-label">All configured titles</span>
+          </label>
+        </div>
         <div class="search-controls">
-          <input type="text" id="role-filter" placeholder="e.g. Delivery Manager">
+          <!-- Role input row: visible in single mode, hidden in all-titles mode -->
+          <div id="role-input-wrap">
+            <!-- datalist populated from API_CONFIG.SEARCH_TITLES by initSearchModeToggle() -->
+            <input type="text" id="role-filter" list="role-suggestions" placeholder="e.g. Delivery Manager">
+            <datalist id="role-suggestions"></datalist>
+          </div>
           <select id="location-filter">
             <option value="ireland">All Ireland</option>
             <option value="dublin">Dublin</option>
             <option value="cork">Cork</option>
             <option value="limerick">Limerick</option>
           </select>
-          <button class="search-btn" id="fetch-btn" onclick="fetchJobs()">Search</button>
-          <button class="search-btn" id="fetch-all-btn" onclick="fetchAllJobs()"
-            style="background:none;color:var(--text);border-color:var(--border2);">Search all titles</button>
+          <!-- Single button for both modes — handleSearch() reads the toggle and delegates -->
+          <button class="search-btn" id="fetch-btn" onclick="handleSearch()">Search</button>
           <span class="last-fetched" id="last-fetched"></span>
         </div>
         <div id="jobs-list">
-          <div class="empty-state">Enter a job title and hit Search to pull live jobs.</div>
+          <div class="empty-state">Choose a search mode and hit Search to pull live jobs.</div>
         </div>
       </div>
 

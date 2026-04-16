@@ -154,6 +154,40 @@ h2 {
   line-height: 1.6;
 }
 
+.search-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+/* Each radio + label pair is styled as a pill — selected state uses a stronger border */
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border2);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text2);
+  user-select: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+/* Highlight the selected mode pill — :has() checks if the radio inside is checked */
+.mode-option:has(input:checked) {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.mode-option input[type="radio"] {
+  accent-color: var(--text);
+  cursor: pointer;
+}
+
 .search-controls {
   display: flex;
   gap: 10px;

@@ -59,6 +59,23 @@ function getSearchTitles() {
   return API_CONFIG.SEARCH_TITLES;
 }
 
+// ─── getSearchTitleCount ──────────────────────────────────────────────────────
+// Returns the number of titles configured in API_CONFIG.SEARCH_TITLES.
+// Used by the mode toggle UI to display "N titles from config" next to the
+// "All configured titles" option, and to disable the option gracefully if no
+// titles have been added to config.js yet.
+//
+// @returns {number} Number of configured search titles, or 0 if not set
+function getSearchTitleCount() {
+  if (
+    typeof API_CONFIG === 'undefined' ||
+    !Array.isArray(API_CONFIG.SEARCH_TITLES)
+  ) {
+    return 0;
+  }
+  return API_CONFIG.SEARCH_TITLES.length;
+}
+
 // Note: Adzuna credentials (AID, AKEY) removed — replaced by Reed.co.uk integration.
 // The Reed API key is read inside fetchReedJobs() rather than at module level,
 // so test code can override global.API_CONFIG per-test without reloading the module.
@@ -406,6 +423,24 @@ async function fetchReedJobs(keywords, locationName) {
   return data.results || [];
 }
 
+// ─── handleSearch ─────────────────────────────────────────────────────────────
+// Single entry point for the Search button, shared by both search modes.
+// Reads the current mode toggle state and delegates to the appropriate function:
+//   - 'single' mode → fetchJobs()  (searches by the entered keyword)
+//   - 'all'    mode → fetchAllJobs() (iterates all titles in config)
+//
+// Keeping routing logic here (rather than inline onclick) makes it easy to test
+// and means the HTML Search button has one stable onclick target regardless of mode.
+async function handleSearch() {
+  const selected = document.querySelector('input[name="search-mode"]:checked');
+  const mode = selected ? selected.value : 'single';
+  if (mode === 'all') {
+    await fetchAllJobs();
+  } else {
+    await fetchJobs();
+  }
+}
+
 // ─── fetchJobs ────────────────────────────────────────────────────────────────
 // UI-level function: reads form values, calls fetchReedJobs, and renders job cards.
 // The try/catch here is intentional — fetchReedJobs throws on API errors and
@@ -533,7 +568,10 @@ async function fetchJobs() {
 // single failed title doesn't wipe out results from the others.
 async function fetchAllJobs() {
   const loc = document.getElementById('location-filter').value;
-  const btn = document.getElementById('fetch-all-btn');
+  // Both modes share the single #fetch-btn — handleSearch() disables it before
+  // delegating here, but we re-reference it to keep fetchAllJobs self-contained
+  // and callable from tests or other entry points if needed.
+  const btn = document.getElementById('fetch-btn');
   const list = document.getElementById('jobs-list');
   btn.disabled = true; btn.textContent = 'Searching...';
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Searching all titles — this may take a moment...</div>';
@@ -581,7 +619,7 @@ async function fetchAllJobs() {
 
     if (!allJobs.length) {
       list.innerHTML = '<div class="empty-state">No roles found.</div>';
-      btn.disabled = false; btn.textContent = 'Search all titles'; return;
+      btn.disabled = false; btn.textContent = 'Search'; return;
     }
 
     const tracker = getTracker();
@@ -630,7 +668,7 @@ async function fetchAllJobs() {
     list.innerHTML = '<div class="empty-state empty-state--error">Error fetching jobs. Check your connection and try again.</div>';
   }
 
-  btn.disabled = false; btn.textContent = 'Search all titles';
+  btn.disabled = false; btn.textContent = 'Search';
 }
 
 function addToTracker(id, title, company, url) {
@@ -770,7 +808,8 @@ if (typeof module !== 'undefined') {
     isFeatureEnabled,
     getDefaultTab,
     getLocale,
-    fetchReedJobs,  // Exported so Jest unit tests can call it directly
-    getSearchTitles // Exported so Jest unit tests can verify config-reading behaviour
+    fetchReedJobs,       // Exported so Jest unit tests can call it directly
+    getSearchTitles,     // Exported so Jest unit tests can verify config-reading behaviour
+    getSearchTitleCount  // Exported so Jest unit tests can verify the count utility
   };
 }
