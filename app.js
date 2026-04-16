@@ -66,39 +66,39 @@ const TRACKER_KEY = 'jst_tracker_v1';
 const SEEN_KEY = 'jst_seen_v1';
 const COMPANIES_KEY = 'jst_companies_v1';
 
-const DEFAULT_COMPANIES = [
-  { name: 'Datadog', location: 'Dublin · Observability SaaS', url: 'https://careers.datadoghq.com/all-jobs/?search=&location=Dublin%2C+Ireland', tags: ['Strong fit', 'EM', 'Delivery', 'DevOps'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'HubSpot', location: 'Dublin · Marketing SaaS', url: 'https://www.hubspot.com/careers/jobs#office=dublin', tags: ['EM', 'PM', 'Scrum'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Zendesk', location: 'Dublin · CX SaaS', url: 'https://jobs.zendesk.com/us/en/search-results?keywords=&location=Dublin%2C+Ireland', tags: ['PM', 'Delivery', 'Agile'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Teamwork.com', location: 'Cork · Project Mgmt SaaS', url: 'https://www.teamwork.com/careers/', tags: ['Cork-based', 'EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Workhuman', location: 'Dublin · HR Tech SaaS', url: 'https://www.workhuman.com/company/careers/list/', tags: ['EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Tines', location: 'Dublin · Security Automation', url: 'https://www.tines.com/careers', tags: ['EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Phorest', location: 'Dublin · Vertical SaaS', url: 'https://www.phorest.com/careers/', tags: ['EM', 'Scrum'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'AMCS Group', location: 'Limerick · Environment and Resources', url: 'https://www.amcsgroup.com/about/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Action Point (Viatel Technology Group)', location: 'Limerick · Digital transformation and cloud-based enterprise solutions', url: 'https://actionpoint.ie/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'HR Duo', location: 'Limerick · HR-tech company', url: 'https://hrduo.com/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Deveire', location: 'Limerick · Bespoke digital solutions and CMS platforms', url: 'https://www.deveire.com/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Dell Technologies', location: 'Limerick · Digital transformation, cybersecurity, and cloud software services', url: 'https://jobs.dell.com/en/location/limerick-jobs/375/2963597-7521315-2962943/4', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Jaguar Land Rover (Software Center)', location: 'Limerick · "Software Defined Vehicles," including cloud platforms, AI, and enterprise data management', url: 'https://www.jaguarlandrovercareers.com/content/Locations/Ireland/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Advarra', location: 'Limerick · Provides workflow and compliance SaaS solutions for clinical research and life sciences', url: 'https://www.advarra.com/about/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'ACI Worldwide', location: 'Limerick · A global provider of real-time payments software and enterprise SaaS solutions for banks and retailers', url: 'https://www.aciworldwide.com/about-aci/careers', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Stats Perform', location: 'Limerick · An AI and data SaaS company providing deep sports analytics and enterprise data solutions to media and pro teams', url: 'https://www.statsperform.com/careers/', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Elastic', location: 'Remote · Elasticsearch', url: 'https://jobs.elastic.co/jobs/country/ireland?size=n_20_n', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'RxSense', location: 'Dublin · Healthtech', url: 'https://job-boards.greenhouse.io/rxsense', tags: [], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-];
 
 function getTracker() { try { return JSON.parse(localStorage.getItem(TRACKER_KEY) || '{}'); } catch { return {}; } }
 function saveTracker(d) { localStorage.setItem(TRACKER_KEY, JSON.stringify(d)); updateTrackerNav(); }
 function getSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; } }
 function saveSeen(ids) { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); }
 
+// ─── getCompanies ─────────────────────────────────────────────────────────────
+// Returns the company list, preferring localStorage so user edits persist across sessions.
+// On first load (no localStorage data), seeds from API_CONFIG.DEFAULT_COMPANIES and saves
+// to localStorage so subsequent loads don't re-read config.
+//
+// Returns [] and logs a warning if localStorage is empty and DEFAULT_COMPANIES is not
+// configured — the UI shows an empty state rather than crashing.
+//
+// @returns {Array} Array of company objects
 function getCompanies() {
-  let companies = JSON.parse(localStorage.getItem(COMPANIES_KEY));
-  if (!companies) {
-    companies = DEFAULT_COMPANIES;
-    localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies));
+  // Prefer localStorage — user may have added, edited, or removed companies since first load
+  const stored = JSON.parse(localStorage.getItem(COMPANIES_KEY));
+  if (stored) return stored;
+
+  // Nothing in localStorage — seed from config on first load
+  if (
+    typeof API_CONFIG === 'undefined' ||
+    !Array.isArray(API_CONFIG.DEFAULT_COMPANIES) ||
+    API_CONFIG.DEFAULT_COMPANIES.length === 0
+  ) {
+    console.warn('DEFAULT_COMPANIES is missing or empty in config.js. Add a DEFAULT_COMPANIES array to seed the company list.');
+    return [];
   }
-  return companies;
+
+  // Save config defaults to localStorage so edits made later are preserved
+  localStorage.setItem(COMPANIES_KEY, JSON.stringify(API_CONFIG.DEFAULT_COMPANIES));
+  return API_CONFIG.DEFAULT_COMPANIES;
 }
 function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
 

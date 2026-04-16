@@ -13,6 +13,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ### Enhancements
 - JST-51: Move hardcoded search titles to config.js
+- JST-52: Move hardcoded default companies to config.js
 
 ## [2026-04-10]
 

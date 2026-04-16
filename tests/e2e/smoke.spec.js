@@ -54,8 +54,8 @@ test('navigation works — default panel is visible, enabled panels have nav but
 // Verifies that the company grid is populated with at least one card on load.
 //
 // On a fresh page (empty localStorage), getCompanies() in app.js falls back to
-// DEFAULT_COMPANIES — a hardcoded list of ~18 target employers. This test
-// confirms that at least one of those cards is rendered and visible.
+// API_CONFIG.DEFAULT_COMPANIES (defined in config.js). This test confirms that
+// at least one of those cards is rendered and visible.
 test('company grid renders with at least one company card visible', async ({ page }) => {
   await page.goto(APP_URL);
 

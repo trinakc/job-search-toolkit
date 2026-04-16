@@ -42,5 +42,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # Python 3 is pre-installed on ubuntu-latest, so no setup step is needed
       # for the 'python -m http.server 8000' webServer command in playwright.config.js.
+      # config.js is gitignored (contains real API keys locally) so it doesn't exist in CI.
+      # Copy the template to give the app a valid config with DEFAULT_COMPANIES so the
+      # company grid renders. Placeholder API keys are fine — no real API calls are made
+      # in Playwright tests (Reed calls are intercepted; scorer is feature-flagged off).
+      - name: Create config.js from template for CI
+        run: cp config.template.js config.js
       - name: Run Playwright tests
         run: npm run test:e2e

@@ -43,4 +43,13 @@ const API_CONFIG = {
     'release manager',
     'development manager',
   ],
+
+  // Seed data for the Target Companies panel, shown on first load before the user adds their own.
+  // Each entry requires: name, location (display text), url (careers page), tags (array of strings).
+  // Optional tracking fields default to null/empty and are managed by the app: lastClicked,
+  // status, roleApplied, usefulInfo, lastUpdated.
+  DEFAULT_COMPANIES: [
+    { name: 'Example Corp', location: 'Dublin · Enterprise SaaS', url: 'https://example.com/careers', tags: ['EM', 'Delivery'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+    { name: 'Another Co', location: 'Cork · Fintech', url: 'https://anotherco.example/jobs', tags: ['PM', 'Agile'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+  ],
 };
