@@ -5,10 +5,22 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ---
 
+## Known issues
+- JST-19: Resolve Stylelint HTML compatibility issue" — CSS linting deferred
+- JST-29: Company modal button unavailable in small screen
+
 ## [2026-04-16]
 
 ### Enhancements
 - JST-51: Move hardcoded search titles to config.js
+
+## [2026-04-10]
+
+### Enhancements
+- JST-45: Integrate [Reed.co.uk](http://Reed.co.uk) API as job data source
+
+### Defects fixed
+- JST-48: Reed API live search returns incorrect results — keywords not phrase-searched
 
 ## [2026-04-07]
 
@@ -25,12 +37,6 @@ Entries are added manually after each working session, pulled from the Notion pr
 ### Defects fixed
 - JST-37: Style completely broken
 - JST-40: Clicking on Edit opens incorrect Company Card
-
-### Known issues
-- Adzuna API blocked by CORS when opening file directly via file:// — use local server
-- Adzuna Ireland endpoint access pending confirmation from Adzuna support
-- JST-19: Resolve Stylelint HTML compatibility issue" — CSS linting deferred
-- JST-29: Company modal button unavailable in small screen
 
 ## [2026-04-03]
 
