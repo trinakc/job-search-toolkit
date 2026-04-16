@@ -5,14 +5,14 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ---
 
+## Known issues
+- JST-19: Resolve Stylelint HTML compatibility issue" — CSS linting deferred
+- JST-29: Company modal button unavailable in small screen
+
 ## [2026-04-16]
 
 ### Enhancements
 - JST-51: Move hardcoded search titles to config.js
-
-## Known issues
-- JST-19: Resolve Stylelint HTML compatibility issue" — CSS linting deferred
-- JST-29: Company modal button unavailable in small screen
 
 ## [2026-04-10]
 
