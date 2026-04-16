@@ -48,49 +48,7 @@
           highlighted with a green border. Hit "+ Track" on anything worth following up.
           Salaries are shown in GBP (£) — Reed is a UK job board.</p>
         <div class="search-controls">
-          <select id="role-filter">
-            <optgroup label="Delivery Management">
-              <option value="delivery manager">Delivery Manager</option>
-              <option value="release manager">Release Manager</option>
-              <option value="iteration manager">Iteration Manager</option>
-              <option value="software delivery lead">Software Delivery Lead</option>
-              <option value="project delivery lead">Project Delivery Lead</option>
-            </optgroup>
-
-            <optgroup label="Engineering Leadership">
-              <option value="engineering manager">Engineering Manager</option>
-              <option value="software engineering lead">Software Engineering Lead</option>
-              <option value="development manager">Development Manager</option>
-              <option value="squad lead">Squad Lead</option>
-              <option value="technical lead manager">Technical Lead Manager (TLM)</option>
-            </optgroup>
-
-            <optgroup label="Technical Project Management">
-              <option value="technical project manager">Technical Project Manager</option>
-              <option value="technical producer">Technical Producer</option>
-              <option value="it project lead">IT Project Lead</option>
-              <option value="implementation manager">Implementation Manager</option>
-              <option value="solutions project manager">Solutions Project Manager</option>
-            </optgroup>
-
-            <optgroup label="Scrum &amp; Agile">
-              <option value="scrum master">Scrum Master</option>
-              <option value="agile facilitator">Agile Facilitator</option>
-              <option value="team coach">Team Coach</option>
-              <option value="flow manager">Flow Manager</option>
-              <option value="agile coach">Agile Coach</option>
-              <option value="lean-agile practitioner">Lean-Agile Practitioner</option>
-              <option value="transformation lead">Transformation Lead</option>
-            </optgroup>
-
-            <optgroup label="Programme &amp; Portfolio">
-              <option value="programme manager">Programme Manager</option>
-              <option value="portfolio manager">Portfolio Manager</option>
-              <option value="strategic initiative lead">Strategic Initiative Lead</option>
-              <option value="pmo lead">PMO Lead</option>
-              <option value="director of program management">Director of Program Management</option>
-            </optgroup>
-          </select>
+          <input type="text" id="role-filter" placeholder="e.g. Delivery Manager">
           <select id="location-filter">
             <option value="ireland">All Ireland</option>
             <option value="dublin">Dublin</option>
@@ -103,7 +61,7 @@
           <span class="last-fetched" id="last-fetched"></span>
         </div>
         <div id="jobs-list">
-          <div class="empty-state">Select a role type and hit Search to pull live jobs.</div>
+          <div class="empty-state">Enter a job title and hit Search to pull live jobs.</div>
         </div>
       </div>
 

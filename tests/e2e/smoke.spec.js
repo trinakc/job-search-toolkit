@@ -164,6 +164,12 @@ test('live jobs panel is visible, search returns results, and job cards render',
   // The jobs panel should now be the active (visible) panel
   await expect(page.locator('#jobs')).toBeVisible();
 
+  // Fill the role text input — role-filter is now a free-text input (JST-53).
+  // Unlike the old dropdown which had a pre-selected value, the input starts empty
+  // and fetchJobs() guards against empty input, so we must type something first.
+  // The value doesn't matter — the route intercept above catches any request.
+  await page.fill('#role-filter', 'test role');
+
   // Click the Search button — this triggers fetchJobs() → fetchReedJobs() →
   // our mocked route above → card rendering
   await page.click('#fetch-btn');

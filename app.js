@@ -420,6 +420,13 @@ async function fetchJobs() {
   const btn = document.getElementById('fetch-btn');
   const list = document.getElementById('jobs-list');
 
+  // Guard against empty role input — the text field starts blank (unlike the old
+  // dropdown which always had a pre-selected value), so we must check before fetching.
+  if (!role.trim()) {
+    list.innerHTML = '<div class="empty-state empty-state--error">Please enter a job title to search.</div>';
+    return;
+  }
+
   // Disable the button and show a loading spinner while the request is in flight
   btn.disabled = true; btn.textContent = 'Searching...';
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Fetching live jobs from Reed...</div>';

@@ -211,6 +211,13 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     headerInfo.textContent = (typeof API_CONFIG !== 'undefined' && API_CONFIG.HEADER_INFO) ? API_CONFIG.HEADER_INFO : 'Your Job Title · Your Location · Year';
   }
 
+  // Set the role-filter placeholder from config so it reflects the user's typical search terms.
+  // Falls back to the HTML default if config is absent (e.g. in CI or fresh setup).
+  const roleFilter = document.getElementById('role-filter');
+  if (roleFilter && typeof API_CONFIG !== 'undefined' && API_CONFIG.ROLE_PLACEHOLDER) {
+    roleFilter.placeholder = API_CONFIG.ROLE_PLACEHOLDER;
+  }
+
   updateTrackerNav();
   renderCompanies();
   renderAlerts();
