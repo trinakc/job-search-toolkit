@@ -29,4 +29,18 @@ const API_CONFIG = {
     { name: 'Role 1 — Location', string: '"Role Name" Location keywords' },
     { name: 'Role 2 — Location', string: '"Another Role" Location keywords' },
   ], // Google alert search strings - each object has a name and the search string to copy
+
+  // Job titles used by the "Search all titles" button in Live Jobs.
+  // Each string is sent to the Reed API as a phrase-quoted keyword search.
+  // Add, remove, or edit titles to match the roles you are targeting.
+  SEARCH_TITLES: [
+    'delivery manager',
+    'engineering manager',
+    'scrum master',
+    'technical project manager',
+    'programme manager',
+    'agile coach',
+    'release manager',
+    'development manager',
+  ],
 };

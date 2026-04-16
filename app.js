@@ -37,6 +37,28 @@ function getLocale() {
   return (typeof API_CONFIG !== 'undefined' && API_CONFIG.LOCALE) ? API_CONFIG.LOCALE : 'en-US';
 }
 
+// ─── getSearchTitles ──────────────────────────────────────────────────────────
+// Returns the list of job titles used by fetchAllJobs() in "Search all titles" mode.
+// Reads from API_CONFIG.SEARCH_TITLES so each user can personalise their search
+// in config.js without editing app.js.
+//
+// Returns [] and logs a warning if SEARCH_TITLES is missing or empty — fetchAllJobs()
+// treats an empty return as a misconfiguration and shows a user-facing message
+// rather than silently firing zero API requests.
+//
+// @returns {string[]} Array of job title strings, or [] if not configured
+function getSearchTitles() {
+  if (
+    typeof API_CONFIG === 'undefined' ||
+    !Array.isArray(API_CONFIG.SEARCH_TITLES) ||
+    API_CONFIG.SEARCH_TITLES.length === 0
+  ) {
+    console.warn('SEARCH_TITLES is missing or empty in config.js. Add a SEARCH_TITLES array to use "Search all titles".');
+    return [];
+  }
+  return API_CONFIG.SEARCH_TITLES;
+}
+
 // Note: Adzuna credentials (AID, AKEY) removed — replaced by Reed.co.uk integration.
 // The Reed API key is read inside fetchReedJobs() rather than at module level,
 // so test code can override global.API_CONFIG per-test without reloading the module.
@@ -503,24 +525,20 @@ async function fetchJobs() {
 // Each individual request is caught separately (.catch(() => [])) so that a
 // single failed title doesn't wipe out results from the others.
 async function fetchAllJobs() {
-  // The set of core job titles to search across — covers the main categories
-  // relevant to delivery/engineering management roles in Ireland
-  const coreTitles = [
-    'delivery manager',
-    'engineering manager',
-    'scrum master',
-    'technical project manager',
-    'programme manager',
-    'agile coach',
-    'release manager',
-    'development manager'
-  ];
-
   const loc = document.getElementById('location-filter').value;
   const btn = document.getElementById('fetch-all-btn');
   const list = document.getElementById('jobs-list');
   btn.disabled = true; btn.textContent = 'Searching...';
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div>Searching all titles — this may take a moment...</div>';
+
+  // Read search titles from config — warns and returns [] if SEARCH_TITLES is missing or empty
+  const coreTitles = getSearchTitles();
+  if (!coreTitles.length) {
+    // getSearchTitles() already logged a console warning; show a user-facing message too
+    list.innerHTML = '<div class="empty-state empty-state--error">No search titles configured. Add a SEARCH_TITLES array to config.js.</div>';
+    btn.disabled = false; btn.textContent = 'Search all titles';
+    return;
+  }
 
   // Normalise the location dropdown value to a Reed-friendly location name
   const locationName = loc === 'ireland' ? 'Ireland' : loc.charAt(0).toUpperCase() + loc.slice(1);
@@ -745,6 +763,7 @@ if (typeof module !== 'undefined') {
     isFeatureEnabled,
     getDefaultTab,
     getLocale,
-    fetchReedJobs  // Exported so Jest unit tests can call it directly
+    fetchReedJobs,  // Exported so Jest unit tests can call it directly
+    getSearchTitles // Exported so Jest unit tests can verify config-reading behaviour
   };
 }

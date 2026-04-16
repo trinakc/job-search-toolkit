@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -492,5 +492,67 @@ describe('fetchReedJobs', () => {
     // The function must throw — the UI fetchJobs() function catches this and
     // renders an error message to the user instead of an empty job list
     await expect(fetchReedJobs('delivery manager', 'Ireland')).rejects.toThrow();
+  });
+});
+
+// ─── getSearchTitles tests ────────────────────────────────────────────────────
+// getSearchTitles() reads the job title list from API_CONFIG.SEARCH_TITLES and
+// returns it for use by fetchAllJobs() in "Search all titles" mode.
+//
+// Moving titles to config allows each user to personalise the search without
+// editing app.js. These tests verify the config is read correctly and that
+// missing or empty config is handled gracefully rather than silently firing
+// zero API requests.
+
+describe('getSearchTitles', () => {
+  let warnSpy;
+
+  beforeEach(() => {
+    // Reset to a base config without SEARCH_TITLES before each test.
+    // Individual tests add SEARCH_TITLES as needed to control what the function sees.
+    global.API_CONFIG = { REED_API_KEY: 'test-reed-api-key' };
+
+    // Silence console.warn output during tests — we assert it was called, not its text.
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  // ── Test 1: Reads titles from config ─────────────────────────────────────────
+  // The core behaviour: when SEARCH_TITLES is present, the function returns it
+  // unchanged so fetchAllJobs() uses exactly the titles the user configured.
+  test('returns the SEARCH_TITLES array from API_CONFIG when configured', () => {
+    global.API_CONFIG.SEARCH_TITLES = ['delivery manager', 'engineering manager', 'scrum master'];
+
+    const titles = getSearchTitles();
+
+    expect(titles).toEqual(['delivery manager', 'engineering manager', 'scrum master']);
+  });
+
+  // ── Test 2: Missing SEARCH_TITLES ────────────────────────────────────────────
+  // If the user has not added SEARCH_TITLES to config.js, the function must not
+  // throw or return undefined — fetchAllJobs() checks for an empty array to decide
+  // whether to show a user-facing error and return early.
+  test('returns an empty array and logs a warning when SEARCH_TITLES is missing from config', () => {
+    // SEARCH_TITLES is deliberately absent from global.API_CONFIG (set in beforeEach)
+    const titles = getSearchTitles();
+
+    expect(titles).toEqual([]);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  // ── Test 3: Empty SEARCH_TITLES array ────────────────────────────────────────
+  // An empty array in config is treated the same as missing — it would cause
+  // fetchAllJobs() to fire zero requests and show nothing, so we catch it here
+  // and warn rather than proceeding silently.
+  test('returns an empty array and logs a warning when SEARCH_TITLES is an empty array', () => {
+    global.API_CONFIG.SEARCH_TITLES = [];
+
+    const titles = getSearchTitles();
+
+    expect(titles).toEqual([]);
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
