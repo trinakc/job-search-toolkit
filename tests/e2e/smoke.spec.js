@@ -214,3 +214,37 @@ test('job tracker data persists in localStorage after page reload', async ({ pag
   const parsed = JSON.parse(stored);
   expect(parsed['smoke-test-job-001'].title).toBe('Playwright Smoke Test Job');
 });
+
+// ─── Test 7: Mode toggle ──────────────────────────────────────────────────────
+// Verifies that the mode toggle correctly shows/hides the role input.
+//
+// - On load, "Single role" is pre-selected and the role input is visible
+// - Switching to "All configured titles" hides the role input and shows the count label
+// - Switching back to "Single role" restores the role input
+//
+// The toggle wiring lives in initSearchModeToggle() (app-dom.js).
+// This test confirms the DOM event listeners and visibility logic are working.
+test('mode toggle shows role input for single mode and hides it for all-titles mode', async ({ page }) => {
+  await page.goto(APP_URL);
+
+  // Navigate to the Live Jobs panel
+  await page.locator('nav button', { hasText: 'Live jobs' }).click();
+  await expect(page.locator('#jobs')).toBeVisible();
+
+  // On load, single mode is pre-selected — role input must be visible
+  await expect(page.locator('#role-input-wrap')).toBeVisible();
+
+  // Switch to "All configured titles" mode
+  await page.click('#mode-all');
+
+  // Role input wrap should now be hidden
+  await expect(page.locator('#role-input-wrap')).not.toBeVisible();
+
+  // The all-titles label should contain the title count from config
+  // (config.template.js has 8 titles, copied to config.js in CI)
+  await expect(page.locator('#all-titles-label')).toContainText('All configured titles');
+
+  // Switch back to single mode — role input should reappear
+  await page.click('#mode-single');
+  await expect(page.locator('#role-input-wrap')).toBeVisible();
+});

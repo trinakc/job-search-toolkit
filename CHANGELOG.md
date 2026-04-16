@@ -15,6 +15,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 - JST-51: Move hardcoded search titles to config.js
 - JST-52: Move hardcoded default companies to config.js
 - JST-53: Remove hardcoded role filter dropdown (Adzuna legacy)
+- JST-54: Replace dual search buttons with mode toggle on Live Search panel
 
 ## [2026-04-10]
 

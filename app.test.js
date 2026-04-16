@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -585,5 +585,40 @@ describe('getSearchTitles', () => {
 
     expect(titles).toEqual([]);
     expect(warnSpy).toHaveBeenCalled();
+  });
+});
+
+// ─── getSearchTitleCount tests ────────────────────────────────────────────────
+// getSearchTitleCount() returns the number of titles in API_CONFIG.SEARCH_TITLES.
+// Used by the mode toggle UI to display "N titles from config" in all-titles mode,
+// and to disable that mode option gracefully when no titles are configured.
+
+describe('getSearchTitleCount', () => {
+  // ── Test 1: Returns count when titles are configured ─────────────────────────
+  // The core use case: user has SEARCH_TITLES in config, UI shows the correct count.
+  test('returns the number of titles in API_CONFIG.SEARCH_TITLES when configured', () => {
+    global.API_CONFIG = { REED_API_KEY: 'test', SEARCH_TITLES: ['delivery manager', 'engineering manager', 'scrum master'] };
+
+    expect(getSearchTitleCount()).toBe(3);
+  });
+
+  // ── Test 2: Returns 0 when SEARCH_TITLES is missing ──────────────────────────
+  // If the user has not added SEARCH_TITLES to config, the count should be 0 rather
+  // than throwing — the UI uses 0 to show a warning state on the toggle option.
+  test('returns 0 when SEARCH_TITLES is missing from API_CONFIG', () => {
+    global.API_CONFIG = { REED_API_KEY: 'test' };
+
+    expect(getSearchTitleCount()).toBe(0);
+  });
+
+  // ── Test 3: Returns 0 when API_CONFIG is not defined ─────────────────────────
+  // Guards against the CI/fresh-setup case where config.js has not been created yet.
+  test('returns 0 when API_CONFIG is not defined', () => {
+    const original = global.API_CONFIG;
+    global.API_CONFIG = undefined;
+
+    expect(getSearchTitleCount()).toBe(0);
+
+    global.API_CONFIG = original;
   });
 });
