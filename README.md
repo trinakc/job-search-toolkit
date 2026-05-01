@@ -29,7 +29,11 @@ A customizable HTML job search dashboard for tracking applications, discovering 
 - [Security](#security)
 - [Testing](#testing)
 - [CI](#ci)
-- [Contributing and AI usage](#contributing-and-ai-usage)
+- [How this is built](#how-this-is-built)
+  - [Governance: CLAUDE.md](#governance-claudemd)
+  - [Workflow: tickets drive implementation](#workflow-tickets-drive-implementation)
+  - [AI involvement tracking](#ai-involvement-tracking)
+- [Navigating this repo](#navigating-this-repo)
 - [Before committing](#before-committing)
 
 ## Why I Built This the Way I Did
@@ -286,9 +290,48 @@ The badge at the top of this file reflects the last completed run against `main`
 
 Configuration lives in `.github/workflows/ci.yml`.
 
-## Contributing and AI usage
+## How this is built
 
-This project is developed with [Claude Code](https://claude.ai/code). All conventions — TDD workflow, commenting standards, security rules, branching and commit format, and the pre-commit checklist — are documented in [CLAUDE.md](CLAUDE.md).
+This project uses [Claude Code](https://claude.ai/code) as a development collaborator, not just a code generator. Human judgement is in the loop at every step — no files are written until a plan is reviewed and approved.
+
+### Governance: CLAUDE.md
+
+[CLAUDE.md](CLAUDE.md) is the single source of truth for how this project is built. Claude Code reads it at the start of every session. It defines:
+
+- **TDD discipline** — tests are written before implementation, always
+- **Commenting standards** — every function documented; explain intent, not just what the code does
+- **Security rules** — non-negotiable constraints on secrets, CSP updates, and secret detection in CI
+- **Branching and commit format** — consistent structure across all changes, with AI involvement recorded
+- **Pre-commit checklist** — lint, Jest, and Playwright must all pass before any commit
+
+### Workflow: tickets drive implementation
+
+Every feature and fix starts as a Notion ticket with acceptance criteria, scope constraints, and a dependency map. Implementation follows a fixed sequence:
+
+1. **`/start JST-{ID}`** — fetches the ticket from Notion, displays its acceptance criteria and scope constraints, moves it to In Progress, and enters plan mode
+2. **Plan mode (vertical slice)** — Claude Code explores the affected files, maps dependencies, and proposes a plan. No files are written until the human approves.
+3. **Implement (TDD)** — Jest unit tests first, then the implementation, then Playwright e2e tests. All three must pass.
+4. **`/done JST-{ID}`** — commits with the correct message format, raises a draft PR, and moves the ticket to In Review on Notion
+
+The `/start` and `/done` commands are Claude Code skills defined in `.claude/skills/`. They keep Notion ticket status in sync with the code automatically.
+
+### AI involvement tracking
+
+Every ticket on the Notion board records an AI involvement level:
+
+- **Generated** — Claude Code wrote the bulk of the code
+- **Assisted** — human-directed with AI support
+- **None** — written without AI involvement
+
+This is self-reported honestly — it is not automated.
+
+## Navigating this repo
+
+- **`.claude/skills/`** — Claude Code skill definitions: `/start`, `/done`, `/vertical-slice`
+- **`stories/`** — ticket stories used as planning context during vertical slice sessions
+- **`CLAUDE.md`** — governance rules, TDD workflow, security constraints, and commit conventions
+- **`CHANGELOG.md`** — change history, one entry per Enhancement or Defect ticket
+- **Notion board** — full ticket history, acceptance criteria, dependency maps, and AI involvement tracking (private)
 
 ## Before committing
 
