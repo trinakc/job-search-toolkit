@@ -25,6 +25,12 @@ Always read the relevant existing files before starting. Understand the current 
 
 Do not guess at structure. Read first.
 
+## Workflow skills
+
+Use the `/vertical-slice` skill at the start of every new JST ticket. It enforces a plan-mode-first workflow: reads the story, explores affected code, maps dependencies, and waits for plan approval before any files are written.
+
+See `.claude/skills/vertical-slice/SKILL.md` for the full skill definition.
+
 ## Test-driven development
 
 Always write tests before implementation:
