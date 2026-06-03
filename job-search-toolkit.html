@@ -94,6 +94,29 @@
         <p class="panel-desc">Track target companies, save application status, and keep useful notes for each employer.</p>
         <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
 
+        <!-- Import/Export controls — bulk load or back up the company list.
+             Uses native FileReader and Blob APIs; no server round-trip required. -->
+        <div class="company-io-controls">
+          <button class="io-btn" onclick="document.getElementById('company-import-input').click()">Import</button>
+          <!-- Hidden file input: this.value is reset after selection so the same file can be re-imported -->
+          <input type="file" id="company-import-input" accept=".csv,.json" style="display:none"
+                 onchange="handleCompanyImport(this.files[0]); this.value = '';">
+          <button class="io-btn" onclick="exportCompanies('csv')">Export CSV</button>
+          <button class="io-btn" onclick="exportCompanies('json')">Export JSON</button>
+        </div>
+        <!-- Inline feedback after an import attempt — hidden until an import completes -->
+        <div id="import-feedback" class="import-feedback" hidden></div>
+
+        <!-- Collapsible format reference — kept closed by default so it doesn't clutter the UI -->
+        <details class="import-format-help">
+          <summary>Import format</summary>
+          <div class="import-format-body">
+            <p><strong>CSV</strong> — first row must be a header. Required columns: <code>name</code>, <code>url</code>. Optional: <code>location</code>, <code>tags</code>, <code>status</code>, <code>roleApplied</code>, <code>usefulInfo</code>, <code>lastClicked</code>, <code>lastUpdated</code>. Tags are pipe-separated: <code>EM|DevOps</code>.</p>
+            <p><strong>JSON</strong> — a top-level array of objects with the same field names. Required: <code>name</code> and <code>url</code>. All other fields are optional.</p>
+            <p>Rows missing <code>name</code> or <code>url</code> are skipped. Companies with a name that already exists are not overwritten. Use <em>Export CSV</em> or <em>Export JSON</em> to see the exact format.</p>
+          </div>
+        </details>
+
         <!-- Sort and filter controls — values are read by renderCompanies() on every render.
              No state is persisted to localStorage; controls reset on page reload. -->
         <div class="company-controls">

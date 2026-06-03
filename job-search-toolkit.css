@@ -1197,3 +1197,91 @@ textarea:focus {
   color: var(--text3);
   margin-bottom: 0.75rem;
 }
+
+/* ─── Import / Export controls ───────────────────────────────────────────── */
+
+/* Row of import/export buttons — sits between the Add Company button and the sort controls */
+.company-io-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0.75rem;
+}
+
+/* Secondary action buttons — lower visual weight than the primary .add-company-btn */
+.io-btn {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+}
+
+.io-btn:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* Inline message shown after an import completes — hidden by default via HTML hidden attr */
+.import-feedback {
+  font-size: 13px;
+  font-family: var(--mono);
+  padding: 8px 12px;
+  border-radius: 5px;
+  margin-bottom: 0.75rem;
+}
+
+/* Green tint for a successful import */
+.import-feedback.success {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* Red tint for import failures — matches .empty-state--error colour */
+.import-feedback.error {
+  background: #fbeaea;
+  color: #B03A2E;
+}
+
+/* Collapsible format reference shown below the import/export controls */
+.import-format-help {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text3);
+  margin-bottom: 1rem;
+}
+
+.import-format-help summary {
+  cursor: pointer;
+  user-select: none;
+  color: var(--text3);
+}
+
+.import-format-help summary:hover {
+  color: var(--text);
+}
+
+.import-format-body {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  line-height: 1.6;
+}
+
+.import-format-body p {
+  margin: 0 0 6px;
+}
+
+.import-format-body p:last-child {
+  margin-bottom: 0;
+}
+
+.import-format-body code {
+  background: var(--surface2, #f0ede8);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: var(--mono);
+}

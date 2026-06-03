@@ -119,6 +119,308 @@ function getCompanies() {
 }
 function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
 
+// ─── Export functions ─────────────────────────────────────────────────────────
+
+// escapeCSVField — wraps a field value in double-quotes when it contains a comma,
+// double-quote, or newline (RFC 4180 compliance). Escapes internal double-quotes as "".
+// Returns an empty string for null/undefined so the CSV column is always populated.
+// @param {*} val
+// @returns {string}
+function escapeCSVField(val) {
+  const str = val == null ? '' : String(val);
+  // Only quote fields that require it — keeps output readable for common values
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+// companiesToCSV — serializes a company array to a CSV string.
+// Column order: name, location, url, tags, status, roleApplied, usefulInfo, lastClicked, lastUpdated
+// Tags are pipe-joined ("EM|Delivery") to avoid ambiguity with the comma delimiter.
+// @param {Array} companies
+// @returns {string} CSV text
+function companiesToCSV(companies) {
+  const HEADERS = ['name', 'location', 'url', 'tags', 'status', 'roleApplied', 'usefulInfo', 'lastClicked', 'lastUpdated'];
+  const rows = [HEADERS.join(',')];
+  companies.forEach(c => {
+    const row = [
+      escapeCSVField(c.name),
+      escapeCSVField(c.location),
+      escapeCSVField(c.url),
+      escapeCSVField(Array.isArray(c.tags) ? c.tags.join('|') : (c.tags || '')),
+      escapeCSVField(c.status),
+      escapeCSVField(c.roleApplied),
+      escapeCSVField(c.usefulInfo),
+      escapeCSVField(c.lastClicked),
+      escapeCSVField(c.lastUpdated)
+    ];
+    rows.push(row.join(','));
+  });
+  return rows.join('\n');
+}
+
+// companiesToJSON — serializes a company array to a pretty-printed JSON string.
+// @param {Array} companies
+// @returns {string} JSON text
+function companiesToJSON(companies) {
+  return JSON.stringify(companies, null, 2);
+}
+
+// triggerFileDownload — triggers a browser file download without a server round-trip.
+// Creates a temporary Blob URL attached to an invisible <a>, clicks it, then revokes
+// the URL after a short delay to allow the browser to begin the download.
+// @param {string} filename
+// @param {string} content   — file contents as a string
+// @param {string} mimeType  — e.g. 'text/csv' or 'application/json'
+function triggerFileDownload(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Revoke after a short delay so the download has time to start before the URL is freed
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+// exportCompanies — entry point for the Export CSV / Export JSON buttons.
+// Reads the current company list, serialises it, and triggers a browser download.
+// The filename includes today's date (YYYY-MM-DD) for easy identification.
+// @param {'csv'|'json'} format
+function exportCompanies(format) {
+  const companies = getCompanies();
+  const date = new Date().toISOString().slice(0, 10);
+  if (format === 'csv') {
+    triggerFileDownload(`companies-${date}.csv`, companiesToCSV(companies), 'text/csv');
+  } else if (format === 'json') {
+    triggerFileDownload(`companies-${date}.json`, companiesToJSON(companies), 'application/json');
+  }
+}
+
+// ─── Import functions ─────────────────────────────────────────────────────────
+
+// parseCSVRow — splits a single CSV line into fields, respecting RFC 4180 quoting.
+// Handles embedded commas and double-quotes (escaped as "") within quoted fields.
+// Does not support multi-line fields (newlines inside quoted values) — not needed
+// for the company schema.
+// @param {string} row
+// @returns {string[]}
+function parseCSVRow(row) {
+  const fields = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (inQuotes) {
+      if (ch === '"' && row[i + 1] === '"') {
+        // "" inside a quoted field is an escaped double-quote
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(field);
+        field = '';
+      } else {
+        field += ch;
+      }
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+// parseCSVToCompanies — parses CSV text into an array of company objects.
+// The first row is used as the header to map column positions to field names.
+// Tags are pipe-split ("EM|Delivery" → ['EM', 'Delivery']) since pipes are used
+// as the intra-field delimiter to avoid clashing with commas.
+// Required: name and url — rows missing either are added to skipped with a reason.
+// @param {string} csvText
+// @returns {{ imported: Object[], skipped: Array<{row: number, reason: string}> }}
+function parseCSVToCompanies(csvText) {
+  // Normalise Windows and old Mac line endings
+  const lines = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  if (lines.length < 2) return { imported: [], skipped: [] };
+
+  const headers = parseCSVRow(lines[0]);
+  const imported = [];
+  const skipped = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue; // Skip blank trailing lines
+
+    const values = parseCSVRow(line);
+    const entry = {};
+    headers.forEach((h, idx) => {
+      entry[h] = values[idx] !== undefined ? values[idx].trim() : '';
+    });
+
+    if (!entry.name) {
+      skipped.push({ row: i + 1, reason: 'missing required field: name' });
+      continue;
+    }
+    if (!entry.url) {
+      skipped.push({ row: i + 1, reason: 'missing required field: url' });
+      continue;
+    }
+
+    // Restore tags from pipe-delimited string to array
+    entry.tags = entry.tags ? entry.tags.split('|').map(t => t.trim()).filter(Boolean) : [];
+
+    // Normalise empty CSV fields back to null so the shape matches the app's data model
+    ['status', 'roleApplied', 'usefulInfo', 'lastClicked', 'lastUpdated'].forEach(field => {
+      if (entry[field] === '') entry[field] = null;
+    });
+
+    imported.push(entry);
+  }
+
+  return { imported, skipped };
+}
+
+// parseJSONToCompanies — parses a JSON string into an array of company objects.
+// Expects a top-level array — returns an error for invalid JSON or non-array input.
+// Skips individual entries that are missing name or url.
+// @param {string} jsonText
+// @returns {{ imported: Object[], skipped: Array<{index: number, reason: string}>, error?: string }}
+function parseJSONToCompanies(jsonText) {
+  let data;
+  try {
+    data = JSON.parse(jsonText);
+  } catch (e) {
+    return { imported: [], skipped: [], error: `Invalid JSON: ${e.message}` };
+  }
+
+  if (!Array.isArray(data)) {
+    return { imported: [], skipped: [], error: 'JSON must be an array of company objects' };
+  }
+
+  const imported = [];
+  const skipped = [];
+
+  data.forEach((entry, i) => {
+    if (!entry.name) {
+      skipped.push({ index: i, reason: 'missing required field: name' });
+      return;
+    }
+    if (!entry.url) {
+      skipped.push({ index: i, reason: 'missing required field: url' });
+      return;
+    }
+    // Ensure tags is always an array regardless of what was in the JSON
+    if (!Array.isArray(entry.tags)) entry.tags = [];
+    imported.push(entry);
+  });
+
+  return { imported, skipped };
+}
+
+// mergeImportedCompanies — merges parsed company objects into the existing list.
+// Deduplicates by name (case-sensitive): if a company with the same name already
+// exists, it is counted as a duplicate and not added — existing data is never overwritten.
+// @param {{ imported: Object[], skipped: Array }} parseResult
+// @returns {{ added: number, duplicates: number, skipped: number }}
+function mergeImportedCompanies(parseResult) {
+  const existing = getCompanies();
+  const existingNames = new Set(existing.map(c => c.name));
+
+  let added = 0;
+  let duplicates = 0;
+  const merged = [...existing];
+
+  parseResult.imported.forEach(company => {
+    if (existingNames.has(company.name)) {
+      duplicates++;
+    } else {
+      merged.push(company);
+      existingNames.add(company.name);
+      added++;
+    }
+  });
+
+  saveCompanies(merged);
+  // renderCompanies is defined in app-dom.js and is not available in the Node test environment
+  if (typeof renderCompanies === 'function') renderCompanies();
+
+  return { added, duplicates, skipped: parseResult.skipped.length };
+}
+
+// handleCompanyImport — called from the file input's onchange handler.
+// Reads the selected file via FileReader and routes it to the correct parser
+// based on file extension (.csv or .json). Shows feedback after the import.
+// @param {File} file
+function handleCompanyImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const ext = file.name.split('.').pop().toLowerCase();
+    let parseResult;
+    if (ext === 'csv') {
+      parseResult = parseCSVToCompanies(text);
+    } else if (ext === 'json') {
+      parseResult = parseJSONToCompanies(text);
+    } else {
+      showImportFeedback({ error: `Unsupported file type: .${ext}. Use .csv or .json.` });
+      return;
+    }
+
+    if (parseResult.error) {
+      showImportFeedback({ error: parseResult.error });
+      return;
+    }
+
+    const summary = mergeImportedCompanies(parseResult);
+    showImportFeedback(summary);
+  };
+  reader.onerror = () => showImportFeedback({ error: 'Could not read the file.' });
+  reader.readAsText(file);
+}
+
+// showImportFeedback — updates #import-feedback with a human-readable import summary.
+// Uses 'success' styling for a clean import and 'error' styling for failures.
+// Auto-hides after 5 seconds so the message doesn't linger.
+// @param {{ added?: number, duplicates?: number, skipped?: number, error?: string }} result
+function showImportFeedback(result) {
+  const el = document.getElementById('import-feedback');
+  if (!el) return;
+
+  el.removeAttribute('hidden');
+  el.className = 'import-feedback'; // Reset any prior state class
+
+  if (result.error) {
+    el.classList.add('error');
+    el.textContent = `Import failed: ${result.error}`;
+  } else {
+    const parts = [];
+    if (result.added > 0) {
+      parts.push(`${result.added} ${result.added === 1 ? 'company' : 'companies'} imported`);
+    } else {
+      parts.push('No new companies imported');
+    }
+    if (result.duplicates > 0) parts.push(`${result.duplicates} ${result.duplicates === 1 ? 'duplicate' : 'duplicates'} skipped`);
+    if (result.skipped > 0) parts.push(`${result.skipped} invalid ${result.skipped === 1 ? 'row' : 'rows'} skipped`);
+    el.classList.add('success');
+    el.textContent = parts.join(', ') + '.';
+  }
+
+  // Auto-clear after 5 seconds so the message doesn't clutter the UI
+  setTimeout(() => {
+    el.setAttribute('hidden', '');
+    el.className = 'import-feedback';
+  }, 5000);
+}
+
 // ─── sortCompanies ────────────────────────────────────────────────────────────
 // Returns a new sorted array — never mutates the input.
 //
@@ -808,8 +1110,13 @@ if (typeof module !== 'undefined') {
     isFeatureEnabled,
     getDefaultTab,
     getLocale,
-    fetchReedJobs,       // Exported so Jest unit tests can call it directly
-    getSearchTitles,     // Exported so Jest unit tests can verify config-reading behaviour
-    getSearchTitleCount  // Exported so Jest unit tests can verify the count utility
+    fetchReedJobs,              // Exported so Jest unit tests can call it directly
+    getSearchTitles,            // Exported so Jest unit tests can verify config-reading behaviour
+    getSearchTitleCount,        // Exported so Jest unit tests can verify the count utility
+    parseCSVToCompanies,        // Exported for unit testing CSV import logic
+    parseJSONToCompanies,       // Exported for unit testing JSON import logic
+    companiesToCSV,             // Exported for unit testing CSV serialisation
+    companiesToJSON,            // Exported for unit testing JSON serialisation
+    mergeImportedCompanies      // Exported for unit testing merge/dedup logic
   };
 }

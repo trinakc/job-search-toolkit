@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -620,5 +620,297 @@ describe('getSearchTitleCount', () => {
     expect(getSearchTitleCount()).toBe(0);
 
     global.API_CONFIG = original;
+  });
+});
+
+// ─── parseCSVToCompanies tests ────────────────────────────────────────────────
+// parseCSVToCompanies() parses a CSV string into company objects.
+// Required fields are name and url — rows missing either are skipped.
+// Tags are pipe-delimited in the CSV ("EM|DevOps") and split back into an array.
+
+describe('parseCSVToCompanies', () => {
+  // ── Test 1: Happy path ───────────────────────────────────────────────────────
+  // Verifies that a well-formed CSV row produces a correctly shaped company object.
+  test('parses a valid CSV and returns the correct company objects', () => {
+    const csv = 'name,location,url,tags,status,roleApplied,usefulInfo,lastClicked,lastUpdated\nDatadog,Dublin,https://careers.datadoghq.com,EM|DevOps,applied,Engineering Manager,Great team,,';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported).toHaveLength(1);
+    expect(result.imported[0].name).toBe('Datadog');
+    expect(result.imported[0].location).toBe('Dublin');
+    expect(result.imported[0].url).toBe('https://careers.datadoghq.com');
+    expect(result.imported[0].status).toBe('applied');
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  // ── Test 2: Tags are array ───────────────────────────────────────────────────
+  // Tags stored as "EM|IC|DevOps" in CSV must be split back into an array.
+  test('splits pipe-separated tags into an array', () => {
+    const csv = 'name,url,tags\nAcme,https://acme.com,EM|IC|DevOps';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported[0].tags).toEqual(['EM', 'IC', 'DevOps']);
+  });
+
+  // ── Test 3: Missing name ─────────────────────────────────────────────────────
+  // Rows without a name cannot be identified or rendered — they must be skipped.
+  test('skips rows missing the required name field and counts them in skipped', () => {
+    const csv = 'name,url\n,https://acme.com\nAcme,https://acme.com';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported).toHaveLength(1);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0].reason).toMatch(/name/i);
+  });
+
+  // ── Test 4: Missing url ──────────────────────────────────────────────────────
+  // A company without a URL can't link anywhere — it must be skipped.
+  test('skips rows missing the required url field and counts them in skipped', () => {
+    const csv = 'name,url\nAcme,';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported).toHaveLength(0);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0].reason).toMatch(/url/i);
+  });
+
+  // ── Test 5: Header-only CSV ──────────────────────────────────────────────────
+  // An exported file with no data rows should not fail — it just imports nothing.
+  test('returns an empty imported array for a header-only CSV', () => {
+    const csv = 'name,location,url,tags';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported).toHaveLength(0);
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  // ── Test 6: Quoted fields with commas ───────────────────────────────────────
+  // Location strings like "Dublin, Ireland" must be preserved intact.
+  test('handles quoted fields that contain commas', () => {
+    const csv = 'name,location,url\nAcme,"Dublin, Ireland",https://acme.com';
+
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported[0].location).toBe('Dublin, Ireland');
+  });
+});
+
+// ─── parseJSONToCompanies tests ───────────────────────────────────────────────
+// parseJSONToCompanies() parses a JSON array string into company objects.
+// Returns an error property for invalid JSON or non-array input.
+
+describe('parseJSONToCompanies', () => {
+  // ── Test 1: Happy path ───────────────────────────────────────────────────────
+  test('parses a valid JSON array and returns company objects', () => {
+    const json = JSON.stringify([{ name: 'Acme', url: 'https://acme.com', location: 'Dublin', tags: ['EM'] }]);
+
+    const result = parseJSONToCompanies(json);
+
+    expect(result.imported).toHaveLength(1);
+    expect(result.imported[0].name).toBe('Acme');
+    expect(result.skipped).toHaveLength(0);
+    expect(result.error).toBeUndefined();
+  });
+
+  // ── Test 2: Missing name ─────────────────────────────────────────────────────
+  test('skips entries missing the name field', () => {
+    const json = JSON.stringify([{ url: 'https://acme.com' }, { name: 'Valid', url: 'https://valid.com' }]);
+
+    const result = parseJSONToCompanies(json);
+
+    expect(result.imported).toHaveLength(1);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0].reason).toMatch(/name/i);
+  });
+
+  // ── Test 3: Missing url ──────────────────────────────────────────────────────
+  test('skips entries missing the url field', () => {
+    const json = JSON.stringify([{ name: 'Acme' }]);
+
+    const result = parseJSONToCompanies(json);
+
+    expect(result.imported).toHaveLength(0);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0].reason).toMatch(/url/i);
+  });
+
+  // ── Test 4: Invalid JSON ─────────────────────────────────────────────────────
+  // Malformed text should produce a clear error rather than crashing.
+  test('returns an error result for invalid JSON', () => {
+    const result = parseJSONToCompanies('not valid json {{{');
+
+    expect(result.error).toBeDefined();
+    expect(result.imported).toHaveLength(0);
+  });
+
+  // ── Test 5: Non-array JSON ───────────────────────────────────────────────────
+  // The import format must be an array — a plain object is not valid.
+  test('returns an error result when given a JSON value that is not an array', () => {
+    const result = parseJSONToCompanies(JSON.stringify({ name: 'not an array' }));
+
+    expect(result.error).toBeDefined();
+    expect(result.imported).toHaveLength(0);
+  });
+});
+
+// ─── companiesToCSV tests ─────────────────────────────────────────────────────
+// companiesToCSV() serializes a company array to a CSV string.
+// Tags become pipe-delimited; fields with commas are quoted.
+
+describe('companiesToCSV', () => {
+  // ── Test 1: Header row ───────────────────────────────────────────────────────
+  test('includes a header row with all expected column names', () => {
+    const csv = companiesToCSV([]);
+    const header = csv.split('\n')[0];
+
+    expect(header).toContain('name');
+    expect(header).toContain('url');
+    expect(header).toContain('tags');
+  });
+
+  // ── Test 2: Tags serialization ───────────────────────────────────────────────
+  // Tags must use pipe (|) not comma — commas are the CSV delimiter.
+  test('serializes tags array as pipe-separated values', () => {
+    const companies = [{ name: 'Acme', url: 'https://acme.com', tags: ['EM', 'DevOps'] }];
+
+    const csv = companiesToCSV(companies);
+
+    expect(csv).toContain('EM|DevOps');
+  });
+
+  // ── Test 3: Quoting ──────────────────────────────────────────────────────────
+  // Fields containing commas must be double-quoted to remain parseable.
+  test('wraps fields containing commas in double-quotes', () => {
+    const companies = [{ name: 'Acme', url: 'https://acme.com', location: 'Dublin, Ireland', tags: [] }];
+
+    const csv = companiesToCSV(companies);
+
+    expect(csv).toContain('"Dublin, Ireland"');
+  });
+});
+
+// ─── companiesToJSON tests ────────────────────────────────────────────────────
+// companiesToJSON() serializes a company array to a pretty-printed JSON string.
+
+describe('companiesToJSON', () => {
+  // ── Test 1: Round-trip ───────────────────────────────────────────────────────
+  test('returns a valid JSON string that parses back to the original array', () => {
+    const companies = [{ name: 'Acme', url: 'https://acme.com', tags: ['EM'] }];
+
+    const json = companiesToJSON(companies);
+    const parsed = JSON.parse(json);
+
+    expect(parsed).toEqual(companies);
+  });
+});
+
+// ─── mergeImportedCompanies tests ────────────────────────────────────────────
+// mergeImportedCompanies() merges parsed companies into the existing localStorage list.
+// Deduplicates by name — existing companies are never overwritten.
+
+describe('mergeImportedCompanies', () => {
+  beforeEach(() => {
+    // renderCompanies is defined in app-dom.js which is not loaded in Jest.
+    // We stub it so the merge function can call it safely without throwing.
+    global.renderCompanies = jest.fn();
+  });
+
+  afterEach(() => {
+    delete global.renderCompanies;
+  });
+
+  // ── Test 1: Adds new companies ───────────────────────────────────────────────
+  test('adds new companies that do not already exist in localStorage', () => {
+    localStorage.setItem('jst_companies_v1', JSON.stringify([{ name: 'Existing', url: 'https://existing.com', tags: [] }]));
+    const parseResult = { imported: [{ name: 'New Co', url: 'https://new.com', tags: [] }], skipped: [] };
+
+    const result = mergeImportedCompanies(parseResult);
+
+    expect(result.added).toBe(1);
+    const saved = JSON.parse(localStorage.getItem('jst_companies_v1'));
+    expect(saved).toHaveLength(2);
+  });
+
+  // ── Test 2: Skips duplicates ─────────────────────────────────────────────────
+  // Companies with the same name must not be overwritten — dedup by name.
+  test('skips companies whose name matches an existing entry and counts them as duplicates', () => {
+    localStorage.setItem('jst_companies_v1', JSON.stringify([{ name: 'Existing', url: 'https://existing.com', tags: [] }]));
+    const parseResult = { imported: [{ name: 'Existing', url: 'https://different.com', tags: [] }], skipped: [] };
+
+    const result = mergeImportedCompanies(parseResult);
+
+    expect(result.added).toBe(0);
+    expect(result.duplicates).toBe(1);
+  });
+
+  // ── Test 3: Correct counts ───────────────────────────────────────────────────
+  test('returns correct added, duplicates, and skipped counts', () => {
+    localStorage.setItem('jst_companies_v1', JSON.stringify([{ name: 'Alpha', url: 'https://alpha.com', tags: [] }]));
+    const parseResult = {
+      imported: [
+        { name: 'Alpha', url: 'https://alpha.com', tags: [] },  // duplicate
+        { name: 'Beta', url: 'https://beta.com', tags: [] }      // new
+      ],
+      skipped: [{ row: 3, reason: 'missing required field: url' }]
+    };
+
+    const result = mergeImportedCompanies(parseResult);
+
+    expect(result.added).toBe(1);
+    expect(result.duplicates).toBe(1);
+    expect(result.skipped).toBe(1);
+  });
+
+  // ── Test 4: Calls renderCompanies ────────────────────────────────────────────
+  // The company grid must re-render after a merge so new cards appear immediately.
+  test('calls renderCompanies after merging', () => {
+    localStorage.setItem('jst_companies_v1', JSON.stringify([]));
+
+    mergeImportedCompanies({ imported: [{ name: 'New', url: 'https://new.com', tags: [] }], skipped: [] });
+
+    expect(global.renderCompanies).toHaveBeenCalled();
+  });
+});
+
+// ─── Import/Export round-trip integrity tests ─────────────────────────────────
+// Verifies that exporting and re-importing a company list preserves all data.
+
+describe('import/export round-trip integrity', () => {
+  const fixture = {
+    name: 'Acme',
+    location: 'Dublin, Ireland',
+    url: 'https://acme.com',
+    tags: ['EM', 'IC'],
+    status: 'applied',
+    roleApplied: 'Engineering Manager',
+    usefulInfo: 'Great team',
+    lastClicked: null,
+    lastUpdated: null
+  };
+
+  // ── Test 1: CSV round-trip ───────────────────────────────────────────────────
+  test('exporting to CSV and re-importing preserves name, tags, status, and location', () => {
+    const csv = companiesToCSV([fixture]);
+    const result = parseCSVToCompanies(csv);
+
+    expect(result.imported).toHaveLength(1);
+    expect(result.imported[0].name).toBe('Acme');
+    // Location contains a comma so it requires quoting — verifies the parser handles it
+    expect(result.imported[0].location).toBe('Dublin, Ireland');
+    expect(result.imported[0].tags).toEqual(['EM', 'IC']);
+    expect(result.imported[0].status).toBe('applied');
+  });
+
+  // ── Test 2: JSON round-trip ──────────────────────────────────────────────────
+  test('exporting to JSON and re-importing yields the identical company array', () => {
+    const json = companiesToJSON([fixture]);
+    const result = parseJSONToCompanies(json);
+
+    expect(result.imported).toEqual([fixture]);
   });
 });
