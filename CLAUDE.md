@@ -119,7 +119,7 @@ The changelog format is:
 Rules:
 - Read `CHANGELOG.md` before editing it — do not overwrite or reformat existing content
 - Check if today's date heading already exists. If it does, add the new entry under the correct sub-heading (`### Enhancements` or `### Defects fixed`). If the sub-heading does not exist yet for that date, add it.
-- If today's date heading does not exist, insert a new `## [YYYY-MM-DD]` block directly below the `---` separator, above all previous date entries
+- If today's date heading does not exist, insert a new `## [YYYY-MM-DD]` block above all previous date entries. The fixed order in the file is: `---` → `## Known issues` → `## [newest date]` → older dates. Never insert between `---` and `## Known issues`.
 - A ticket may appear more than once in the changelog across different dates — this is expected
 - Do not add duplicate entries within the same date block — check before inserting
 - The ticket type will be stated in the prompt as either **Enhancement** or **Defect**. **Enhancement** maps to `### Enhancements`, **Defect** maps to `### Defects fixed`
