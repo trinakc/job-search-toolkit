@@ -94,6 +94,19 @@
         <p class="panel-desc">Track target companies, save application status, and keep useful notes for each employer.</p>
         <button class="add-company-btn" onclick="openAddCompanyModal()">+ Add company</button>
 
+        <!-- Import/Export controls — bulk load or back up the company list.
+             Uses native FileReader and Blob APIs; no server round-trip required. -->
+        <div class="company-io-controls">
+          <button class="io-btn" onclick="document.getElementById('company-import-input').click()">Import</button>
+          <!-- Hidden file input: this.value is reset after selection so the same file can be re-imported -->
+          <input type="file" id="company-import-input" accept=".csv,.json" style="display:none"
+                 onchange="handleCompanyImport(this.files[0]); this.value = '';">
+          <button class="io-btn" onclick="exportCompanies('csv')">Export CSV</button>
+          <button class="io-btn" onclick="exportCompanies('json')">Export JSON</button>
+        </div>
+        <!-- Inline feedback after an import attempt — hidden until an import completes -->
+        <div id="import-feedback" class="import-feedback" hidden></div>
+
         <!-- Sort and filter controls — values are read by renderCompanies() on every render.
              No state is persisted to localStorage; controls reset on page reload. -->
         <div class="company-controls">

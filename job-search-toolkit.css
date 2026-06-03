@@ -1197,3 +1197,50 @@ textarea:focus {
   color: var(--text3);
   margin-bottom: 0.75rem;
 }
+
+/* ─── Import / Export controls ───────────────────────────────────────────── */
+
+/* Row of import/export buttons — sits between the Add Company button and the sort controls */
+.company-io-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0.75rem;
+}
+
+/* Secondary action buttons — lower visual weight than the primary .add-company-btn */
+.io-btn {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+}
+
+.io-btn:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* Inline message shown after an import completes — hidden by default via HTML hidden attr */
+.import-feedback {
+  font-size: 13px;
+  font-family: var(--mono);
+  padding: 8px 12px;
+  border-radius: 5px;
+  margin-bottom: 0.75rem;
+}
+
+/* Green tint for a successful import */
+.import-feedback.success {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* Red tint for import failures — matches .empty-state--error colour */
+.import-feedback.error {
+  background: #fbeaea;
+  color: #B03A2E;
+}
