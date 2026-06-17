@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -440,6 +440,99 @@ describe('deriveCompanyStatus', () => {
       { role: 'EM', status: 'Interviewing', date: '2026-06-12T00:00:00.000Z', notes: '' }
     ] };
     expect(deriveCompanyStatus(company)).toBe('Offer');
+  });
+});
+
+// ─── Legacy data migration (JST-65) ────────────────────────────────────────────
+// migrateCompanies folds each company's legacy usefulInfo + status into a single update
+// card and removes both legacy fields. It runs once on load (runCompanyMigration) and is
+// idempotent — detection keys on the presence of the legacy fields, which it deletes.
+
+describe('migrateCompanies', () => {
+  test('folds usefulInfo + legacy status into one update card and removes the old fields', () => {
+    const input = [{ name: 'Acme', url: 'https://acme.com', tags: [], status: 'applied', usefulInfo: 'Great team', updates: [] }];
+    const { companies, changed } = migrateCompanies(input);
+    const c = companies[0];
+
+    expect(changed).toBe(true);
+    expect(c.updates).toHaveLength(1);
+    expect(c.updates[0].role).toBe('');
+    expect(c.updates[0].status).toBe('Applied');
+    expect(c.updates[0].notes).toBe('Great team');
+    expect(Number.isNaN(Date.parse(c.updates[0].date))).toBe(false);
+    // Both legacy fields are gone entirely (not just nulled).
+    expect('usefulInfo' in c).toBe(false);
+    expect('status' in c).toBe(false);
+  });
+
+  test('removes the legacy fields without creating a card when both are blank', () => {
+    const input = [{ name: 'Acme', url: 'https://acme.com', tags: [], status: null, usefulInfo: '', updates: [] }];
+    const { companies, changed } = migrateCompanies(input);
+
+    expect(changed).toBe(true);
+    expect(companies[0].updates).toHaveLength(0);
+    expect('usefulInfo' in companies[0]).toBe(false);
+    expect('status' in companies[0]).toBe(false);
+  });
+
+  test('maps each legacy status value to the capitalised enum, blank to Considering', () => {
+    const cases = [
+      ['applied', 'Applied'],
+      ['interviewing', 'Interviewing'],
+      ['rejected', 'Rejected'],
+      ['offer', 'Offer'],
+      [null, 'Considering'],
+      ['', 'Considering'],
+      ['something-odd', 'Considering']
+    ];
+    cases.forEach(([legacy, expected]) => {
+      // usefulInfo present so a card is always created, isolating the status mapping.
+      const { companies } = migrateCompanies([{ name: 'X', url: 'u', tags: [], status: legacy, usefulInfo: 'note', updates: [] }]);
+      expect(companies[0].updates[0].status).toBe(expected);
+    });
+  });
+
+  test('appends to existing update cards rather than replacing them', () => {
+    const existing = { role: 'EM', status: 'Interviewing', date: '2026-06-01T00:00:00.000Z', notes: 'prior' };
+    const input = [{ name: 'Acme', url: 'https://acme.com', tags: [], status: 'offer', usefulInfo: 'migrated', updates: [existing] }];
+    const { companies } = migrateCompanies(input);
+
+    expect(companies[0].updates).toHaveLength(2);
+    expect(companies[0].updates[0]).toEqual(existing);
+    expect(companies[0].updates[1].status).toBe('Offer');
+  });
+
+  test('is idempotent — a second pass adds no further cards and reports no change', () => {
+    const input = [{ name: 'Acme', url: 'https://acme.com', tags: [], status: 'applied', usefulInfo: 'note', updates: [] }];
+    const first = migrateCompanies(input);
+    const second = migrateCompanies(first.companies);
+
+    expect(second.changed).toBe(false);
+    expect(second.companies[0].updates).toHaveLength(1);
+  });
+
+  test('leaves an already-migrated company (no legacy keys) untouched', () => {
+    const input = [{ name: 'Acme', url: 'https://acme.com', tags: [], updates: [{ role: '', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'x' }] }];
+    const { companies, changed } = migrateCompanies(input);
+
+    expect(changed).toBe(false);
+    expect(companies[0].updates).toHaveLength(1);
+  });
+});
+
+describe('runCompanyMigration', () => {
+  test('migrates companies in localStorage and persists the result', () => {
+    const seeded = [{ name: 'Acme', location: 'Dublin', url: 'https://acme.com', tags: ['EM'], lastClicked: null, status: 'interviewing', roleApplied: '', usefulInfo: 'Met the hiring manager', lastUpdated: null, updates: [] }];
+    localStorage.setItem('jst_companies_v1', JSON.stringify(seeded));
+
+    runCompanyMigration();
+
+    const migrated = getCompanies()[0];
+    expect('usefulInfo' in migrated).toBe(false);
+    expect('status' in migrated).toBe(false);
+    expect(migrated.updates).toHaveLength(1);
+    expect(migrated.updates[0].status).toBe('Interviewing');
+    expect(migrated.updates[0].notes).toBe('Met the hiring manager');
   });
 });
 

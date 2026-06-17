@@ -221,6 +221,68 @@ function deriveCompanyStatus(company) {
   return latest ? latest.status : null;
 }
 
+// ─── Legacy data migration (JST-65) ────────────────────────────────────────────
+// One-time migration that folds each company's legacy `usefulInfo` + `status` fields into a
+// single update card, then removes both fields. Runs once on load (runCompanyMigration). The
+// legacy `status` field used lowercase values; update cards use the capitalised UPDATE_STATUSES.
+
+// mapLegacyStatus — maps a legacy lowercase company status to an update-card status.
+// Blank/unknown values become 'Considering'; an already-valid capitalised value passes through.
+// @param {*} value
+// @returns {string} one of UPDATE_STATUSES
+function mapLegacyStatus(value) {
+  if (isValidUpdateStatus(value)) return value; // already a capitalised enum value
+  const map = { applied: 'Applied', interviewing: 'Interviewing', rejected: 'Rejected', offer: 'Offer' };
+  return map[value] || 'Considering';
+}
+
+// migrateCompanies — pure migration over a company array. For each company still carrying a
+// legacy field, appends one update card (when there is content to preserve) and deletes both
+// `usefulInfo` and `status`. Idempotent: a company without the legacy keys is left untouched,
+// so re-running never duplicates cards. Returns the (mutated) array and whether anything changed.
+// @param {Array} companies
+// @returns {{ companies: Array, changed: boolean }}
+function migrateCompanies(companies) {
+  let changed = false;
+
+  companies.forEach(company => {
+    // Detection keys on the presence of either legacy field — both are removed below, so a
+    // migrated company is never re-processed.
+    const hasLegacy = Object.prototype.hasOwnProperty.call(company, 'usefulInfo') ||
+                      Object.prototype.hasOwnProperty.call(company, 'status');
+    if (!hasLegacy) return;
+
+    const legacyInfo = typeof company.usefulInfo === 'string' ? company.usefulInfo : '';
+    const legacyStatus = company.status;
+    const hasContent = legacyInfo.trim() !== '' || (legacyStatus != null && legacyStatus !== '');
+
+    if (hasContent) {
+      if (!Array.isArray(company.updates)) company.updates = [];
+      // Role is left blank per the migration spec — the old model had no per-role granularity.
+      company.updates.push(createUpdateCard({
+        role: '',
+        status: mapLegacyStatus(legacyStatus),
+        date: new Date().toISOString(),
+        notes: legacyInfo
+      }));
+    }
+
+    delete company.usefulInfo;
+    delete company.status;
+    changed = true;
+  });
+
+  return { companies, changed };
+}
+
+// runCompanyMigration — on-load entry point. Reads the stored companies, migrates them, and
+// persists only when something changed. Kept free of DOM/render calls so the init sequence
+// controls rendering and so it is safe to unit test under Jest.
+function runCompanyMigration() {
+  const { companies, changed } = migrateCompanies(getCompanies());
+  if (changed) saveCompanies(companies);
+}
+
 // ─── Update card CRUD (JST-63) ─────────────────────────────────────────────────
 // These mutate a single company's `updates` array and persist via saveCompanies,
 // mirroring the saveCompanyInfo/removeCompany pattern (read → locate by index → mutate
@@ -776,11 +838,10 @@ function saveCompanyInfo(index) {
   const companies = getCompanies();
   const company = companies[index];
   if (!company) return;
-  // Status is no longer edited here (JST-64) — it is derived from the update cards.
+  // Status is derived from update cards (JST-64) and usefulInfo was migrated into update-card
+  // notes (JST-65), so this editor only manages the role applied for.
   const role = document.getElementById(`role-${index}`).value.trim();
-  const info = document.getElementById(`info-${index}`).value.trim();
   company.roleApplied = role;
-  company.usefulInfo = info;
   company.lastUpdated = new Date().toISOString();
   saveCompanies(companies);
   renderCompanies();
@@ -1480,6 +1541,8 @@ if (typeof module !== 'undefined') {
     deleteUpdateCard,           // Exported for unit testing update-card delete
     escapeHtml,                 // Exported for unit testing HTML escaping
     getLatestUpdateCard,        // Exported for unit testing latest-card selection (JST-64)
-    deriveCompanyStatus         // Exported for unit testing derived company status
+    deriveCompanyStatus,        // Exported for unit testing derived company status
+    migrateCompanies,           // Exported for unit testing legacy-data migration (JST-65)
+    runCompanyMigration         // Exported for unit testing the on-load migration entry point
   };
 }

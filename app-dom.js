@@ -152,10 +152,7 @@ function renderCompanies() {
               <label for="role-${index}">Role applied for</label>
               <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="${(typeof API_CONFIG !== 'undefined' && API_CONFIG.ROLE_PLACEHOLDER) ? API_CONFIG.ROLE_PLACEHOLDER : 'e.g. Job Title'}">
             </div>
-            <div class="expanded-field">
-              <label for="info-${index}">Useful info discovered</label>
-              <textarea id="info-${index}" placeholder="Notes about the company, contacts, etc.">${company.usefulInfo || ''}</textarea>
-            </div>
+            <!-- "Useful info" removed (JST-65): per-company notes now live in update cards (edit via the modal). -->
             <button class="save-btn" onclick="saveCompanyInfo(${index})">Save changes</button>
             ${company.lastUpdated ? `<div class="company-last-updated">Last updated: ${new Date(company.lastUpdated).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
           </div>
@@ -186,6 +183,10 @@ function renderAlerts() {
 }
 
 if (typeof window !== 'undefined' && document.getElementById('add-company-form')) {
+  // One-time legacy-data migration (JST-65): fold any pre-existing usefulInfo/status into an
+  // update card and drop the old fields. Runs before the first render so the grid reflects it.
+  runCompanyMigration();
+
   document.getElementById('add-company-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('company-name').value.trim();
@@ -212,9 +213,9 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
       company.roleApplied = role;
     } else {
       // Add new company: Initialize with null tracking metadata (set on first interaction)
-      // and an empty updates array (JST-62 model). status starts null (derived from updates,
-      // JST-64); usefulInfo starts blank.
-      companies.push({ name, location, url, tags, lastClicked: null, status: null, roleApplied: role, usefulInfo: '', lastUpdated: null, updates: [] });
+      // and an empty updates array (JST-62 model). The legacy status/usefulInfo fields are no
+      // longer part of new companies (JST-64 derives status from updates; JST-65 retired usefulInfo).
+      companies.push({ name, location, url, tags, lastClicked: null, roleApplied: role, lastUpdated: null, updates: [] });
     }
 
     saveCompanies(companies);
