@@ -198,7 +198,6 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
     const status = document.getElementById('company-status').value || null;
     const role = document.getElementById('company-role').value.trim();
-    const info = document.getElementById('company-info').value.trim();
     if (!name || !url) return;
 
     const companies = getCompanies();
@@ -206,7 +205,9 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
 
     if (editIndex >= 0 && editIndex < companies.length) {
       // Edit existing company: Update mutable fields while preserving tracking metadata
-      // (lastClicked and lastUpdated are set by UI interactions, not form submission)
+      // (lastClicked and lastUpdated are set by UI interactions, not form submission).
+      // usefulInfo and updates are intentionally left untouched here — usefulInfo is managed
+      // elsewhere until JST-65 migration, and update cards persist via their own handlers.
       const company = companies[editIndex];
       company.name = name;
       company.location = location;
@@ -214,10 +215,10 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
       company.tags = tags;
       company.status = status;
       company.roleApplied = role;
-      company.usefulInfo = info;
     } else {
       // Add new company: Initialize with null tracking metadata (set on first interaction)
-      companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: info, lastUpdated: null });
+      // and an empty updates array (JST-62 model). usefulInfo starts blank.
+      companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: '', lastUpdated: null, updates: [] });
     }
 
     saveCompanies(companies);

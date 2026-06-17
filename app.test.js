@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -259,6 +259,131 @@ describe('normalizeCompany', () => {
     // Legacy fields must survive untouched — JST-65 handles their removal, not this ticket.
     expect(normalized.status).toBe('applied');
     expect(normalized.usefulInfo).toBe('note');
+  });
+});
+
+// ─── Update card CRUD (JST-63) ─────────────────────────────────────────────────
+// addUpdateCard / editUpdateCard / deleteUpdateCard mutate a single company's `updates`
+// array and persist via saveCompanies. Each returns a result object ({ ok, updates } on
+// success, { ok: false, errors } on failure) so the modal UI can surface inline errors.
+// They locate the company by its index in the full array — the same index the modal's
+// edit handlers already use.
+
+// Seeds one company (with an empty updates array) into mock localStorage and returns it.
+// Mirrors how the app persists companies so getCompanies() reads them back normalized.
+function seedOneCompany() {
+  const company = { name: 'Acme', location: 'Dublin', url: 'https://acme.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null, updates: [] };
+  localStorage.setItem('jst_companies_v1', JSON.stringify([company]));
+  return company;
+}
+
+describe('addUpdateCard', () => {
+  test('adds a valid card to the company and persists it', () => {
+    seedOneCompany();
+    const result = addUpdateCard(0, { role: 'Engineering Manager', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'Applied via referral' });
+
+    expect(result.ok).toBe(true);
+    const stored = getCompanies()[0].updates;
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toEqual({ role: 'Engineering Manager', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'Applied via referral' });
+  });
+
+  test('defaults role, notes, and date via createUpdateCard when omitted', () => {
+    seedOneCompany();
+    const result = addUpdateCard(0, { status: 'Considering' });
+
+    expect(result.ok).toBe(true);
+    const card = getCompanies()[0].updates[0];
+    expect(card.role).toBe('');
+    expect(card.notes).toBe('');
+    // date defaults to a parseable ISO string when not supplied
+    expect(Number.isNaN(Date.parse(card.date))).toBe(false);
+  });
+
+  test('rejects an invalid status without mutating the company', () => {
+    seedOneCompany();
+    const result = addUpdateCard(0, { status: 'Ghosted' });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(getCompanies()[0].updates).toHaveLength(0);
+  });
+
+  test('returns ok:false when the company index does not exist', () => {
+    seedOneCompany();
+    const result = addUpdateCard(99, { status: 'Applied' });
+
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe('editUpdateCard', () => {
+  test('replaces the card at the given index and persists', () => {
+    seedOneCompany();
+    addUpdateCard(0, { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'first' });
+
+    const result = editUpdateCard(0, 0, { role: 'Senior EM', status: 'Interviewing', date: '2026-06-12T00:00:00.000Z', notes: 'phone screen' });
+
+    expect(result.ok).toBe(true);
+    const card = getCompanies()[0].updates[0];
+    expect(card.role).toBe('Senior EM');
+    expect(card.status).toBe('Interviewing');
+    expect(card.notes).toBe('phone screen');
+  });
+
+  test('rejects an out-of-range card index', () => {
+    seedOneCompany();
+    const result = editUpdateCard(0, 5, { status: 'Applied' });
+
+    expect(result.ok).toBe(false);
+  });
+
+  test('rejects an invalid status and leaves the existing card unchanged', () => {
+    seedOneCompany();
+    addUpdateCard(0, { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'keep me' });
+
+    const result = editUpdateCard(0, 0, { status: 'Ghosted' });
+
+    expect(result.ok).toBe(false);
+    expect(getCompanies()[0].updates[0].status).toBe('Applied');
+    expect(getCompanies()[0].updates[0].notes).toBe('keep me');
+  });
+});
+
+describe('deleteUpdateCard', () => {
+  test('removes the card at the given index and persists', () => {
+    seedOneCompany();
+    addUpdateCard(0, { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'a' });
+    addUpdateCard(0, { role: 'PM', status: 'Considering', date: '2026-06-11T00:00:00.000Z', notes: 'b' });
+
+    const result = deleteUpdateCard(0, 0);
+
+    expect(result.ok).toBe(true);
+    const updates = getCompanies()[0].updates;
+    expect(updates).toHaveLength(1);
+    expect(updates[0].role).toBe('PM');
+  });
+
+  test('is a guarded no-op for an out-of-range index', () => {
+    seedOneCompany();
+    addUpdateCard(0, { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'a' });
+
+    const result = deleteUpdateCard(0, 9);
+
+    expect(result.ok).toBe(false);
+    expect(getCompanies()[0].updates).toHaveLength(1);
+  });
+});
+
+describe('escapeHtml', () => {
+  test('escapes the five HTML-significant characters', () => {
+    expect(escapeHtml('<b>"x" & \'y\'</b>')).toBe('&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;');
+  });
+
+  test('returns an empty string for null or undefined', () => {
+    // Card fields can be empty; the helper must not emit "null"/"undefined" into the DOM.
+    expect(escapeHtml(null)).toBe('');
+    expect(escapeHtml(undefined)).toBe('');
   });
 });
 

@@ -190,6 +190,100 @@ function normalizeCompany(company) {
   return { ...company, updates: Array.isArray(company.updates) ? company.updates : [] };
 }
 
+// ─── Update card CRUD (JST-63) ─────────────────────────────────────────────────
+// These mutate a single company's `updates` array and persist via saveCompanies,
+// mirroring the saveCompanyInfo/removeCompany pattern (read → locate by index → mutate
+// → save → re-render). The company is located by its index in the full array — the same
+// index the modal's edit handlers carry in the #edit-index hidden field. Each returns a
+// result object so the modal can show inline validation errors instead of throwing.
+// renderCompanies is guarded because it lives in app-dom.js and is absent under Jest.
+
+// addUpdateCard — appends a new update card to the company at companyIndex.
+// Builds the card through createUpdateCard so the model's defaulting and status
+// validation are reused; a thrown validation error is converted into { ok:false, errors }.
+// @param {number} companyIndex
+// @param {{ role?: string, status: string, date?: string, notes?: string }} fields
+// @returns {{ ok: true, updates: Object[] } | { ok: false, errors: string[] }}
+function addUpdateCard(companyIndex, fields) {
+  const companies = getCompanies();
+  const company = companies[companyIndex];
+  if (!company) return { ok: false, errors: ['company not found'] };
+
+  let card;
+  try {
+    card = createUpdateCard(fields);
+  } catch (e) {
+    return { ok: false, errors: [e.message] };
+  }
+
+  company.updates.push(card);
+  saveCompanies(companies);
+  if (typeof renderCompanies === 'function') renderCompanies();
+  return { ok: true, updates: company.updates };
+}
+
+// editUpdateCard — replaces the card at cardIndex on the company at companyIndex.
+// Validates both the index range and (via createUpdateCard) the new field values, so an
+// invalid edit leaves the existing card untouched.
+// @param {number} companyIndex
+// @param {number} cardIndex
+// @param {{ role?: string, status: string, date?: string, notes?: string }} fields
+// @returns {{ ok: true, updates: Object[] } | { ok: false, errors: string[] }}
+function editUpdateCard(companyIndex, cardIndex, fields) {
+  const companies = getCompanies();
+  const company = companies[companyIndex];
+  if (!company) return { ok: false, errors: ['company not found'] };
+  if (cardIndex < 0 || cardIndex >= company.updates.length) {
+    return { ok: false, errors: ['update card not found'] };
+  }
+
+  let card;
+  try {
+    card = createUpdateCard(fields);
+  } catch (e) {
+    return { ok: false, errors: [e.message] };
+  }
+
+  company.updates[cardIndex] = card;
+  saveCompanies(companies);
+  if (typeof renderCompanies === 'function') renderCompanies();
+  return { ok: true, updates: company.updates };
+}
+
+// deleteUpdateCard — removes the card at cardIndex from the company at companyIndex.
+// An out-of-range index is a guarded no-op so a stale UI click can't corrupt the array.
+// @param {number} companyIndex
+// @param {number} cardIndex
+// @returns {{ ok: true, updates: Object[] } | { ok: false, errors: string[] }}
+function deleteUpdateCard(companyIndex, cardIndex) {
+  const companies = getCompanies();
+  const company = companies[companyIndex];
+  if (!company) return { ok: false, errors: ['company not found'] };
+  if (cardIndex < 0 || cardIndex >= company.updates.length) {
+    return { ok: false, errors: ['update card not found'] };
+  }
+
+  company.updates.splice(cardIndex, 1);
+  saveCompanies(companies);
+  if (typeof renderCompanies === 'function') renderCompanies();
+  return { ok: true, updates: company.updates };
+}
+
+// escapeHtml — escapes the five HTML-significant characters so free-text update-card
+// fields (role, notes) can be safely interpolated into innerHTML markup. Returns '' for
+// null/undefined so empty fields don't render the literal strings "null"/"undefined".
+// @param {*} value
+// @returns {string}
+function escapeHtml(value) {
+  if (value == null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ─── Export functions ─────────────────────────────────────────────────────────
 
 // escapeCSVField — wraps a field value in double-quotes when it contains a comma,
@@ -583,6 +677,9 @@ function openAddCompanyModal() {
   document.getElementById('modal-title').textContent = 'Add new company';
   document.getElementById('modal-submit-btn').textContent = 'Save company';
   document.getElementById('edit-index').value = '-1';
+  // Hide the update-cards section — a not-yet-saved company has nothing to attach cards to.
+  const section = document.getElementById('update-cards-section');
+  if (section) section.classList.add('hidden');
   document.getElementById('add-company-modal').classList.add('active');
   document.getElementById('company-name').focus();
 }
@@ -602,7 +699,15 @@ function openEditCompanyModal(index) {
   document.getElementById('company-tags').value = company.tags.join(', ');
   document.getElementById('company-status').value = company.status || '';
   document.getElementById('company-role').value = company.roleApplied || '';
-  document.getElementById('company-info').value = company.usefulInfo || '';
+
+  // Update cards (JST-63) are only available when editing a saved company, since the
+  // company must exist in the array for the CRUD handlers to target it by index.
+  const section = document.getElementById('update-cards-section');
+  if (section) {
+    section.classList.remove('hidden');
+    resetUpdateForm();
+    renderUpdateCards(index);
+  }
 
   document.getElementById('add-company-modal').classList.add('active');
   document.getElementById('company-name').focus();
@@ -614,6 +719,8 @@ function closeModal() {
   document.getElementById('modal-title').textContent = 'Add new company';
   document.getElementById('modal-submit-btn').textContent = 'Save company';
   document.getElementById('edit-index').value = '-1';
+  // Collapse the inline update panel so it isn't left open the next time the modal opens.
+  resetUpdateForm();
 }
 
 function removeCompany(name) {
@@ -647,6 +754,150 @@ function saveCompanyInfo(index) {
   company.lastUpdated = new Date().toISOString();
   saveCompanies(companies);
   renderCompanies();
+}
+
+// ─── Update card modal handlers (JST-63) ───────────────────────────────────────
+// DOM glue between the modal's inline update panel and the addUpdateCard/editUpdateCard/
+// deleteUpdateCard logic. The company being edited is identified by the #edit-index hidden
+// field the company modal already maintains, so these handlers take only the card index.
+// Exercised by Playwright (DOM), not Jest.
+
+// currentCompanyIndex — the array index of the company the modal is currently editing.
+// @returns {number}
+function currentCompanyIndex() {
+  return parseInt(document.getElementById('edit-index').value, 10);
+}
+
+// populateUpdateStatusOptions — fills the status <select> from UPDATE_STATUSES so the enum
+// stays single-sourced in app.js. No-op once already populated.
+function populateUpdateStatusOptions() {
+  const select = document.getElementById('update-card-status');
+  if (!select || select.options.length === UPDATE_STATUSES.length) return;
+  select.innerHTML = UPDATE_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+// renderUpdateCards — renders the update cards for the company at companyIndex into
+// #update-cards-list. Free-text fields are escaped (escapeHtml); the date is formatted in
+// UTC to match how it is stored (ISO midnight UTC) and avoid an off-by-one shift. Each card
+// carries Edit/Delete buttons keyed by its index. Shows an empty state when there are none.
+// @param {number} companyIndex
+function renderUpdateCards(companyIndex) {
+  const list = document.getElementById('update-cards-list');
+  if (!list) return;
+  const company = getCompanies()[companyIndex];
+  const updates = (company && company.updates) || [];
+
+  if (updates.length === 0) {
+    list.innerHTML = '<p class="update-cards-empty">No updates yet.</p>';
+    return;
+  }
+
+  list.innerHTML = updates.map((card, i) => {
+    const statusClass = `update-status-${card.status.toLowerCase()}`;
+    const dateLabel = card.date
+      ? new Date(card.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      : '';
+    return `
+      <div class="update-card" data-card-index="${i}">
+        <div class="update-card-header">
+          <span class="update-status-badge ${statusClass}">${escapeHtml(card.status)}</span>
+          ${card.role ? `<span class="update-card-role">${escapeHtml(card.role)}</span>` : ''}
+          <span class="update-card-date">${escapeHtml(dateLabel)}</span>
+        </div>
+        ${card.notes ? `<p class="update-card-notes">${escapeHtml(card.notes)}</p>` : ''}
+        <div class="update-card-actions">
+          <button type="button" onclick="openEditUpdateForm(${i})">Edit</button>
+          <button type="button" onclick="confirmDeleteUpdate(${i})">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// resetUpdateForm — hides and clears the inline add/edit panel and any error text.
+function resetUpdateForm() {
+  const panel = document.getElementById('update-card-form');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  document.getElementById('update-card-index').value = '-1';
+  document.getElementById('update-card-role').value = '';
+  document.getElementById('update-card-date').value = '';
+  document.getElementById('update-card-notes').value = '';
+  const status = document.getElementById('update-card-status');
+  if (status && status.options.length) status.selectedIndex = 0;
+  const err = document.getElementById('update-card-form-error');
+  if (err) err.textContent = '';
+}
+
+// openAddUpdateForm — opens the inline panel in "add" mode (index -1), pre-filling the date
+// with today so logging a fresh update needs no date edit in the common case.
+function openAddUpdateForm() {
+  populateUpdateStatusOptions();
+  resetUpdateForm();
+  document.getElementById('update-card-index').value = '-1';
+  document.getElementById('update-card-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('update-card-form').classList.remove('hidden');
+  document.getElementById('update-card-role').focus();
+}
+
+// openEditUpdateForm — opens the inline panel pre-filled with the card at cardIndex.
+// @param {number} cardIndex
+function openEditUpdateForm(cardIndex) {
+  const company = getCompanies()[currentCompanyIndex()];
+  if (!company || !company.updates[cardIndex]) return;
+  const card = company.updates[cardIndex];
+  populateUpdateStatusOptions();
+  resetUpdateForm();
+  document.getElementById('update-card-index').value = String(cardIndex);
+  document.getElementById('update-card-role').value = card.role || '';
+  document.getElementById('update-card-status').value = card.status;
+  // ISO date → YYYY-MM-DD for the native date input.
+  document.getElementById('update-card-date').value = card.date ? card.date.slice(0, 10) : '';
+  document.getElementById('update-card-notes').value = card.notes || '';
+  document.getElementById('update-card-form').classList.remove('hidden');
+}
+
+// submitUpdateForm — reads the inline panel and routes to editUpdateCard (index >= 0) or
+// addUpdateCard (index -1). On success re-renders the list and collapses the panel; on
+// validation failure shows the errors inline rather than discarding the user's input.
+function submitUpdateForm() {
+  const companyIndex = currentCompanyIndex();
+  const cardIndex = parseInt(document.getElementById('update-card-index').value, 10);
+  const dateValue = document.getElementById('update-card-date').value;
+  const fields = {
+    role: document.getElementById('update-card-role').value.trim(),
+    status: document.getElementById('update-card-status').value,
+    // YYYY-MM-DD → ISO at UTC midnight so the stored value and the UTC-formatted display
+    // agree; omit when blank so createUpdateCard supplies the current timestamp.
+    date: dateValue ? new Date(dateValue + 'T00:00:00.000Z').toISOString() : undefined,
+    notes: document.getElementById('update-card-notes').value.trim()
+  };
+
+  const result = cardIndex >= 0
+    ? editUpdateCard(companyIndex, cardIndex, fields)
+    : addUpdateCard(companyIndex, fields);
+
+  if (result.ok) {
+    resetUpdateForm();
+    renderUpdateCards(companyIndex);
+  } else {
+    const err = document.getElementById('update-card-form-error');
+    if (err) err.textContent = result.errors.join('; ');
+  }
+}
+
+// cancelUpdateForm — discards the inline panel without saving.
+function cancelUpdateForm() {
+  resetUpdateForm();
+}
+
+// confirmDeleteUpdate — deletes the card at cardIndex after a confirmation prompt, then
+// re-renders the list.
+// @param {number} cardIndex
+function confirmDeleteUpdate(cardIndex) {
+  if (!confirm('Delete this update?')) return;
+  const companyIndex = currentCompanyIndex();
+  const result = deleteUpdateCard(companyIndex, cardIndex);
+  if (result.ok) renderUpdateCards(companyIndex);
 }
 
 function trackCompanyClick(name, url) {
@@ -1193,6 +1444,10 @@ if (typeof module !== 'undefined') {
     isValidUpdateStatus,        // Exported for unit testing status validation
     createUpdateCard,           // Exported for unit testing the update-card constructor
     validateUpdateCard,         // Exported for unit testing update-card validation
-    normalizeCompany            // Exported for unit testing the updates-array defaulting
+    normalizeCompany,           // Exported for unit testing the updates-array defaulting
+    addUpdateCard,              // Exported for unit testing update-card add (JST-63)
+    editUpdateCard,             // Exported for unit testing update-card edit
+    deleteUpdateCard,           // Exported for unit testing update-card delete
+    escapeHtml                  // Exported for unit testing HTML escaping
   };
 }

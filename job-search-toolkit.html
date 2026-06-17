@@ -211,8 +211,31 @@
         </select>
         <label for="company-role">Role applied for</label>
         <input type="text" id="company-role" placeholder="e.g. Delivery Manager">
-        <label for="company-info">Useful info discovered</label>
-        <textarea id="company-info" placeholder="Notes about the company, contacts, etc."></textarea>
+        <!-- Update log (JST-63): replaces the old free-text "useful info" textarea in the modal.
+             Shown only when editing a saved company (hidden in Add mode). Controls are
+             type="button" so they never submit the outer #add-company-form. -->
+        <div id="update-cards-section" class="update-cards-section hidden">
+          <label>Updates</label>
+          <div id="update-cards-list"></div>
+          <button type="button" id="add-update-btn" class="add-update-btn" onclick="openAddUpdateForm()">+ Add update</button>
+          <!-- Inline add/edit panel. Not a nested <form> (invalid HTML); index -1 = adding. -->
+          <div id="update-card-form" class="update-card-form hidden">
+            <input type="hidden" id="update-card-index" value="-1">
+            <label for="update-card-role">Role</label>
+            <input type="text" id="update-card-role" placeholder="e.g. Engineering Manager">
+            <label for="update-card-status">Status</label>
+            <select id="update-card-status"></select>
+            <label for="update-card-date">Date</label>
+            <input type="date" id="update-card-date">
+            <label for="update-card-notes">Notes</label>
+            <textarea id="update-card-notes" placeholder="Notes about this update"></textarea>
+            <div id="update-card-form-error" class="update-card-error" role="alert"></div>
+            <div class="update-card-form-actions">
+              <button type="button" onclick="cancelUpdateForm()">Cancel</button>
+              <button type="button" id="update-card-save-btn" onclick="submitUpdateForm()">Save update</button>
+            </div>
+          </div>
+        </div>
         <div class="modal-actions">
           <button type="button" onclick="closeModal()">Cancel</button>
           <button type="submit" id="modal-submit-btn">Save company</button>
