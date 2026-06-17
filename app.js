@@ -190,6 +190,37 @@ function normalizeCompany(company) {
   return { ...company, updates: Array.isArray(company.updates) ? company.updates : [] };
 }
 
+// ─── Derived company status (JST-64) ───────────────────────────────────────────
+// The company's displayed status is derived from its update cards rather than the legacy
+// company.status field, so status lives in one place (the update log) and always reflects
+// real activity. The legacy field is left in the data model until JST-65 removes it.
+
+// getLatestUpdateCard — returns the update card with the most recent date, or null when the
+// company has no updates. On a date tie the later-added card (higher index) wins, so the most
+// recently logged update is treated as current. Unparseable/missing dates rank as oldest.
+// @param {Object} company
+// @returns {Object|null}
+function getLatestUpdateCard(company) {
+  const updates = (company && Array.isArray(company.updates)) ? company.updates : [];
+  if (updates.length === 0) return null;
+
+  // Reduce to the card with the greatest timestamp; `>=` makes a later index win on ties.
+  return updates.reduce((latest, card) => {
+    const cardTime = Date.parse(card.date) || 0;
+    const latestTime = Date.parse(latest.date) || 0;
+    return cardTime >= latestTime ? card : latest;
+  });
+}
+
+// deriveCompanyStatus — the status to display for a company: the status of its most recent
+// update card, or null when there are no updates (the UI shows a neutral "No updates" state).
+// @param {Object} company
+// @returns {string|null}
+function deriveCompanyStatus(company) {
+  const latest = getLatestUpdateCard(company);
+  return latest ? latest.status : null;
+}
+
 // ─── Update card CRUD (JST-63) ─────────────────────────────────────────────────
 // These mutate a single company's `updates` array and persist via saveCompanies,
 // mirroring the saveCompanyInfo/removeCompany pattern (read → locate by index → mutate
@@ -697,7 +728,7 @@ function openEditCompanyModal(index) {
   document.getElementById('company-location').value = company.location;
   document.getElementById('company-url').value = company.url;
   document.getElementById('company-tags').value = company.tags.join(', ');
-  document.getElementById('company-status').value = company.status || '';
+  // Status is derived from update cards (JST-64), not edited in the modal.
   document.getElementById('company-role').value = company.roleApplied || '';
 
   // Update cards (JST-63) are only available when editing a saved company, since the
@@ -745,10 +776,9 @@ function saveCompanyInfo(index) {
   const companies = getCompanies();
   const company = companies[index];
   if (!company) return;
-  const status = document.getElementById(`status-${index}`).value;
+  // Status is no longer edited here (JST-64) — it is derived from the update cards.
   const role = document.getElementById(`role-${index}`).value.trim();
   const info = document.getElementById(`info-${index}`).value.trim();
-  company.status = status || null;
   company.roleApplied = role;
   company.usefulInfo = info;
   company.lastUpdated = new Date().toISOString();
@@ -1448,6 +1478,8 @@ if (typeof module !== 'undefined') {
     addUpdateCard,              // Exported for unit testing update-card add (JST-63)
     editUpdateCard,             // Exported for unit testing update-card edit
     deleteUpdateCard,           // Exported for unit testing update-card delete
-    escapeHtml                  // Exported for unit testing HTML escaping
+    escapeHtml,                 // Exported for unit testing HTML escaping
+    getLatestUpdateCard,        // Exported for unit testing latest-card selection (JST-64)
+    deriveCompanyStatus         // Exported for unit testing derived company status
   };
 }

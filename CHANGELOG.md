@@ -13,6 +13,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ### Enhancements
 - JST-63: Add/Edit/Delete update cards in company modal
+- JST-64: Derive company-level status from latest update card
 
 ## [2026-06-03]
 

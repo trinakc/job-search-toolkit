@@ -137,21 +137,17 @@ function renderCompanies() {
           <div class="company-name">${company.name}</div>
           <div class="company-meta">${company.location}</div>
           ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
-          <div class="company-status status-${company.status || 'not-applied'}">${!company.status ? 'Not applied' : company.status === 'applied' ? 'Applied' : company.status === 'interviewing' ? 'Interviewing' : company.status === 'rejected' ? 'Rejected' : company.status === 'offer' ? 'Offer received' : 'Not applied'}</div>
+          ${(() => {
+            // Status is derived from the most recent update card (JST-64). No updates → neutral state.
+            const derived = deriveCompanyStatus(company);
+            return derived
+              ? `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>`
+              : `<div class="company-status status-not-applied">No updates</div>`;
+          })()}
           <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
           ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
           <button class="expand-btn" onclick="toggleExpand(${index})">Show more info</button>
           <div class="company-expanded" id="expanded-${index}">
-            <div class="expanded-field">
-              <label for="status-${index}">Current status</label>
-              <select id="status-${index}">
-                <option value="" ${!company.status ? 'selected' : ''}>Not applied</option>
-                <option value="applied" ${company.status === 'applied' ? 'selected' : ''}>Applied</option>
-                <option value="interviewing" ${company.status === 'interviewing' ? 'selected' : ''}>Interviewing</option>
-                <option value="rejected" ${company.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                <option value="offer" ${company.status === 'offer' ? 'selected' : ''}>Offer received</option>
-              </select>
-            </div>
             <div class="expanded-field">
               <label for="role-${index}">Role applied for</label>
               <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="${(typeof API_CONFIG !== 'undefined' && API_CONFIG.ROLE_PLACEHOLDER) ? API_CONFIG.ROLE_PLACEHOLDER : 'e.g. Job Title'}">
@@ -196,7 +192,6 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     const location = document.getElementById('company-location').value.trim();
     const url = document.getElementById('company-url').value.trim();
     const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
-    const status = document.getElementById('company-status').value || null;
     const role = document.getElementById('company-role').value.trim();
     if (!name || !url) return;
 
@@ -206,19 +201,20 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     if (editIndex >= 0 && editIndex < companies.length) {
       // Edit existing company: Update mutable fields while preserving tracking metadata
       // (lastClicked and lastUpdated are set by UI interactions, not form submission).
-      // usefulInfo and updates are intentionally left untouched here — usefulInfo is managed
-      // elsewhere until JST-65 migration, and update cards persist via their own handlers.
+      // status, usefulInfo and updates are intentionally left untouched here — status is now
+      // derived from update cards (JST-64), usefulInfo is managed elsewhere until JST-65, and
+      // update cards persist via their own handlers.
       const company = companies[editIndex];
       company.name = name;
       company.location = location;
       company.url = url;
       company.tags = tags;
-      company.status = status;
       company.roleApplied = role;
     } else {
       // Add new company: Initialize with null tracking metadata (set on first interaction)
-      // and an empty updates array (JST-62 model). usefulInfo starts blank.
-      companies.push({ name, location, url, tags, lastClicked: null, status, roleApplied: role, usefulInfo: '', lastUpdated: null, updates: [] });
+      // and an empty updates array (JST-62 model). status starts null (derived from updates,
+      // JST-64); usefulInfo starts blank.
+      companies.push({ name, location, url, tags, lastClicked: null, status: null, roleApplied: role, usefulInfo: '', lastUpdated: null, updates: [] });
     }
 
     saveCompanies(companies);

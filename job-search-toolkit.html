@@ -201,14 +201,7 @@
         <input type="url" id="company-url" required>
         <label for="company-tags">Tags (comma separated)</label>
         <input type="text" id="company-tags" placeholder="e.g. EM, Delivery, Remote">
-        <label for="company-status">Current status</label>
-        <select id="company-status">
-          <option value="">Not applied</option>
-          <option value="applied">Applied</option>
-          <option value="interviewing">Interviewing</option>
-          <option value="rejected">Rejected</option>
-          <option value="offer">Offer received</option>
-        </select>
+        <!-- Status removed (JST-64): a company's status is derived from its update cards below. -->
         <label for="company-role">Role applied for</label>
         <input type="text" id="company-role" placeholder="e.g. Delivery Manager">
         <!-- Update log (JST-63): replaces the old free-text "useful info" textarea in the modal.
