@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -384,6 +384,62 @@ describe('escapeHtml', () => {
     // Card fields can be empty; the helper must not emit "null"/"undefined" into the DOM.
     expect(escapeHtml(null)).toBe('');
     expect(escapeHtml(undefined)).toBe('');
+  });
+});
+
+// ─── Derived company status (JST-64) ───────────────────────────────────────────
+// The company's displayed status is derived from its most recent update card, replacing
+// the legacy company.status field. getLatestUpdateCard finds that card; deriveCompanyStatus
+// returns its status (or null when there are no updates, signalling a neutral empty state).
+
+describe('getLatestUpdateCard', () => {
+  test('returns null when the company has no update cards', () => {
+    expect(getLatestUpdateCard({ name: 'Acme', updates: [] })).toBeNull();
+  });
+
+  test('returns null when updates is missing entirely', () => {
+    expect(getLatestUpdateCard({ name: 'Acme' })).toBeNull();
+  });
+
+  test('returns the card with the most recent date, regardless of array order', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Interviewing', date: '2026-06-14T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Considering', date: '2026-06-08T00:00:00.000Z', notes: '' }
+    ] };
+    expect(getLatestUpdateCard(company).status).toBe('Interviewing');
+  });
+
+  test('prefers the later-added card when two share the most recent date', () => {
+    // Same date on two cards: the one added later (higher index) is treated as current.
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'first' },
+      { role: 'EM', status: 'Offer', date: '2026-06-10T00:00:00.000Z', notes: 'second' }
+    ] };
+    expect(getLatestUpdateCard(company).notes).toBe('second');
+    expect(getLatestUpdateCard(company).status).toBe('Offer');
+  });
+});
+
+describe('deriveCompanyStatus', () => {
+  test('returns null when there are no update cards', () => {
+    expect(deriveCompanyStatus({ name: 'Acme', updates: [] })).toBeNull();
+  });
+
+  test('returns the status of the most recent update card', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Rejected', date: '2026-06-15T00:00:00.000Z', notes: '' }
+    ] };
+    expect(deriveCompanyStatus(company)).toBe('Rejected');
+  });
+
+  test('reflects the newest date even when cards are out of chronological order', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Offer', date: '2026-06-20T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Interviewing', date: '2026-06-12T00:00:00.000Z', notes: '' }
+    ] };
+    expect(deriveCompanyStatus(company)).toBe('Offer');
   });
 });
 
