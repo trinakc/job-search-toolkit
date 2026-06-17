@@ -140,10 +140,11 @@ Commit message format:
 JST-xx: short description of what changed
 ```
 
-All AI-assisted commits must include the trailer:
+All AI-assisted commits must include a co-author trailer naming the actual model used:
 ```
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
 ```
+Replace `<model>` with the specific model that assisted (e.g. the current Claude model and version), so attribution stays accurate over time.
 
 ## Before finishing any task
 

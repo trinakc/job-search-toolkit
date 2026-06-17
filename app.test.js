@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -74,7 +74,9 @@ describe('getCompanies', () => {
   // A minimal company fixture — used to verify getCompanies() seeds from config correctly.
   // Kept small so tests are readable; the real shape is the same as DEFAULT_COMPANIES in config.js.
   const TEST_COMPANIES = [
-    { name: 'Test Corp', location: 'Dublin · Test SaaS', url: 'https://testcorp.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null }
+    // updates: [] is part of the company shape since JST-62. getCompanies() normalizes every
+    // company on read, so the value returned always carries an updates array.
+    { name: 'Test Corp', location: 'Dublin · Test SaaS', url: 'https://testcorp.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null, updates: [] }
   ];
 
   beforeEach(() => {
@@ -97,12 +99,14 @@ describe('getCompanies', () => {
   // Once the user has saved companies, getCompanies() must return their data, not the config defaults.
   // This is the normal operating path after first load.
   test('returns stored companies from localStorage and ignores config defaults', () => {
-    // Pre-populate localStorage as if the user had previously saved their own list
+    // Pre-populate localStorage as if the user had previously saved their own list.
+    // Note this fixture predates JST-62 and has no updates field — getCompanies() must
+    // default it to [] on read without mutating the rest of the object.
     const stored = [{ id: 'test', name: 'Stored Co', location: 'Cork', url: 'https://stored.com', tags: [] }];
     localStorage.setItem('jst_companies_v1', JSON.stringify(stored));
 
-    // getCompanies() should return the stored data, not TEST_COMPANIES from config
-    expect(getCompanies()).toEqual(stored);
+    // getCompanies() should return the stored data (with updates defaulted), not TEST_COMPANIES from config
+    expect(getCompanies()).toEqual([{ ...stored[0], updates: [] }]);
   });
 
   // ── Test 3: Graceful fallback when config is missing ─────────────────────────
@@ -123,6 +127,138 @@ describe('getCompanies', () => {
     expect(companies).toEqual([]);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+});
+
+// ─── Update card data model (JST-62) ──────────────────────────────────────────
+// An update card records one role's status at a point in time. Each company holds
+// an `updates` array of these cards. This ticket adds the model only — no UI.
+// The status enum here is deliberately distinct from the legacy lowercase company
+// `status` field; the two coexist until JST-65 migrates the old field away.
+
+describe('UPDATE_STATUSES', () => {
+  test('lists exactly the six allowed update statuses in order', () => {
+    // These are the canonical status values an update card may take. Order is asserted
+    // because the UI (JST-63) will render them as dropdown options in this sequence.
+    expect(UPDATE_STATUSES).toEqual(['Considering', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Withdrawn']);
+  });
+});
+
+describe('isValidUpdateStatus', () => {
+  test('returns true for every allowed status value', () => {
+    UPDATE_STATUSES.forEach(status => {
+      expect(isValidUpdateStatus(status)).toBe(true);
+    });
+  });
+
+  test('returns false for an unrecognised status string', () => {
+    expect(isValidUpdateStatus('Ghosted')).toBe(false);
+  });
+
+  test('returns false for the legacy lowercase company status values', () => {
+    // The old company-level status field uses lowercase values; those are NOT valid
+    // update-card statuses, so the two models never get accidentally conflated.
+    expect(isValidUpdateStatus('applied')).toBe(false);
+    expect(isValidUpdateStatus('interviewing')).toBe(false);
+  });
+
+  test('returns false for null and undefined', () => {
+    expect(isValidUpdateStatus(null)).toBe(false);
+    expect(isValidUpdateStatus(undefined)).toBe(false);
+  });
+});
+
+describe('createUpdateCard', () => {
+  test('builds a complete card from full input, preserving every field', () => {
+    const card = createUpdateCard({
+      role: 'Engineering Manager',
+      status: 'Applied',
+      date: '2026-06-10T00:00:00.000Z',
+      notes: 'Applied via referral'
+    });
+    expect(card).toEqual({
+      role: 'Engineering Manager',
+      status: 'Applied',
+      date: '2026-06-10T00:00:00.000Z',
+      notes: 'Applied via referral'
+    });
+  });
+
+  test('defaults role and notes to empty strings when omitted', () => {
+    const card = createUpdateCard({ status: 'Considering', date: '2026-06-10T00:00:00.000Z' });
+    expect(card.role).toBe('');
+    expect(card.notes).toBe('');
+  });
+
+  test('supplies a valid ISO date when date is omitted', () => {
+    const card = createUpdateCard({ status: 'Considering' });
+    // The generated date should round-trip through Date without becoming Invalid Date.
+    expect(typeof card.date).toBe('string');
+    expect(Number.isNaN(Date.parse(card.date))).toBe(false);
+  });
+
+  test('throws when the status is not in the allowed enum', () => {
+    expect(() => createUpdateCard({ status: 'Ghosted' })).toThrow();
+  });
+
+  test('throws when status is missing entirely', () => {
+    expect(() => createUpdateCard({ role: 'EM' })).toThrow();
+  });
+});
+
+describe('validateUpdateCard', () => {
+  test('reports a fully valid card as valid with no errors', () => {
+    const result = validateUpdateCard({
+      role: 'EM',
+      status: 'Interviewing',
+      date: '2026-06-10T00:00:00.000Z',
+      notes: 'Round 2 scheduled'
+    });
+    expect(result).toEqual({ valid: true, errors: [] });
+  });
+
+  test('flags a card whose status is not in the enum', () => {
+    const result = validateUpdateCard({ role: 'EM', status: 'Ghosted', date: '2026-06-10T00:00:00.000Z', notes: '' });
+    expect(result.valid).toBe(false);
+    // The error message should mention status so the caller knows which field failed.
+    expect(result.errors.some(e => /status/i.test(e))).toBe(true);
+  });
+
+  test('flags non-string role and notes and an empty date', () => {
+    const result = validateUpdateCard({ role: 42, status: 'Applied', date: '', notes: null });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => /role/i.test(e))).toBe(true);
+    expect(result.errors.some(e => /date/i.test(e))).toBe(true);
+    expect(result.errors.some(e => /notes/i.test(e))).toBe(true);
+  });
+});
+
+describe('normalizeCompany', () => {
+  test('adds an empty updates array when the field is absent', () => {
+    const company = { name: 'Acme', url: 'https://acme.com', tags: [] };
+    expect(normalizeCompany(company).updates).toEqual([]);
+  });
+
+  test('preserves an existing updates array unchanged', () => {
+    const updates = [{ role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' }];
+    const company = { name: 'Acme', url: 'https://acme.com', tags: [], updates };
+    expect(normalizeCompany(company).updates).toEqual(updates);
+  });
+
+  test('coerces a non-array updates value to an empty array', () => {
+    const company = { name: 'Acme', url: 'https://acme.com', tags: [], updates: 'oops' };
+    expect(normalizeCompany(company).updates).toEqual([]);
+  });
+
+  test('leaves all other company fields unchanged', () => {
+    const company = { name: 'Acme', url: 'https://acme.com', tags: ['EM'], status: 'applied', usefulInfo: 'note' };
+    const normalized = normalizeCompany(company);
+    expect(normalized.name).toBe('Acme');
+    expect(normalized.url).toBe('https://acme.com');
+    expect(normalized.tags).toEqual(['EM']);
+    // Legacy fields must survive untouched — JST-65 handles their removal, not this ticket.
+    expect(normalized.status).toBe('applied');
+    expect(normalized.usefulInfo).toBe('note');
   });
 });
 
