@@ -910,6 +910,10 @@ textarea:focus {
   padding: 2rem;
   max-width: 500px;
   width: 90%;
+  /* Cap height and scroll internally so a tall modal (e.g. the update log with many
+     cards plus the inline add/edit panel) keeps its action buttons reachable. */
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-content h3 {
@@ -1067,6 +1071,153 @@ textarea:focus {
   background: #E8F5E8;
   color: #2D5A2D;
   border-color: #A8D5A8;
+}
+
+/* ─── Update cards (JST-63) ──────────────────────────────────────────────────
+   Update log shown inside the company edit modal. The status badge reuses the
+   existing pill colour palette so update statuses read consistently with the
+   legacy company-status badges. */
+
+/* Generic visibility toggle used by the modal's update section and inline panel. */
+.hidden {
+  display: none !important;
+}
+
+.update-cards-section {
+  margin-top: 8px;
+}
+
+.update-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.update-cards-empty {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 4px 0 8px;
+}
+
+.update-card {
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+
+.update-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.update-card-role {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.update-card-date {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text3);
+  margin-left: auto;
+}
+
+.update-card-notes {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+.update-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.update-card-actions button,
+.add-update-btn {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 3px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.update-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px dashed var(--border2);
+  border-radius: 8px;
+}
+
+.update-card-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.update-card-error {
+  font-size: 12px;
+  color: var(--warn);
+}
+
+/* Status badge — base pill plus one modifier per UPDATE_STATUSES value (lowercased). */
+.update-status-badge {
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.update-status-considering {
+  background: var(--surface2);
+  color: var(--text2);
+  border-color: var(--border2);
+}
+
+.update-status-applied {
+  background: var(--info-light);
+  color: var(--info);
+  border-color: #B5C8E8;
+}
+
+.update-status-interviewing {
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border-color: #C2D9C9;
+}
+
+.update-status-offer {
+  background: #E8F5E8;
+  color: #2D5A2D;
+  border-color: #A8D5A8;
+}
+
+.update-status-rejected {
+  background: var(--warn-light);
+  color: var(--warn);
+  border-color: #E8C9A0;
+}
+
+.update-status-withdrawn {
+  background: var(--surface2);
+  color: var(--text3);
+  border-color: var(--border);
+  opacity: 0.7;
 }
 
 .expand-btn {

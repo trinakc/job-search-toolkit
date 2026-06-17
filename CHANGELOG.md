@@ -9,6 +9,11 @@ Entries are added manually after each working session, pulled from the Notion pr
 - JST-19: Resolve Stylelint HTML compatibility issue" — CSS linting deferred
 - JST-29: Company modal button unavailable in small screen
 
+## [2026-06-17]
+
+### Enhancements
+- JST-63: Add/Edit/Delete update cards in company modal
+
 ## [2026-06-03]
 
 ### Enhancements
