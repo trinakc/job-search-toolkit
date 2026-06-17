@@ -99,9 +99,11 @@ function saveSeen(ids) { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); }
 //
 // @returns {Array} Array of company objects
 function getCompanies() {
-  // Prefer localStorage — user may have added, edited, or removed companies since first load
+  // Prefer localStorage — user may have added, edited, or removed companies since first load.
+  // Normalize on read so every company carries an `updates` array (JST-62) regardless of when
+  // it was saved — older stored data predates the field. This does not rewrite localStorage.
   const stored = JSON.parse(localStorage.getItem(COMPANIES_KEY));
-  if (stored) return stored;
+  if (stored) return stored.map(normalizeCompany);
 
   // Nothing in localStorage — seed from config on first load
   if (
@@ -115,9 +117,78 @@ function getCompanies() {
 
   // Save config defaults to localStorage so edits made later are preserved
   localStorage.setItem(COMPANIES_KEY, JSON.stringify(API_CONFIG.DEFAULT_COMPANIES));
-  return API_CONFIG.DEFAULT_COMPANIES;
+  // Normalize the seeded list too so callers always receive companies with an `updates` array.
+  return API_CONFIG.DEFAULT_COMPANIES.map(normalizeCompany);
 }
 function saveCompanies(companies) { localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies)); }
+
+// ─── Update card data model (JST-62) ──────────────────────────────────────────
+// An "update card" records one role's status at a point in time. Each company holds
+// an `updates` array of these cards, letting a user track multiple roles/applications
+// per company without overwriting history. This is the data model only — rendering and
+// CRUD UI land in JST-63, and migration of the legacy `currentStatus`/`usefulInfo`
+// fields into cards is handled by JST-65, so those fields are left in place here.
+
+// Allowed status values for an update card. Capitalised and intentionally distinct
+// from the legacy company-level `status` field (lowercase 'applied'/'interviewing'/…),
+// which this ticket leaves untouched so the two never get conflated.
+const UPDATE_STATUSES = ['Considering', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Withdrawn'];
+
+// isValidUpdateStatus — true iff the given value is one of the allowed UPDATE_STATUSES.
+// @param {*} status
+// @returns {boolean}
+function isValidUpdateStatus(status) {
+  return UPDATE_STATUSES.includes(status);
+}
+
+// createUpdateCard — canonical constructor for an update card. Returns a normalized
+// card object with the four model fields. `role` and `notes` default to empty strings
+// and `date` defaults to the current time (ISO string) so callers can omit them.
+// `status` is required and validated: an out-of-enum or missing status is rejected by
+// throwing, since a card without a meaningful status has no place in the model.
+// @param {{ role?: string, status: string, date?: string, notes?: string }} fields
+// @returns {{ role: string, status: string, date: string, notes: string }}
+function createUpdateCard({ role = '', status, date, notes = '' } = {}) {
+  if (!isValidUpdateStatus(status)) {
+    throw new Error(`Invalid update status: ${status}. Must be one of: ${UPDATE_STATUSES.join(', ')}`);
+  }
+  return {
+    role: String(role),
+    status,
+    // Default to now so a card always has a sortable date; callers pass an explicit
+    // ISO date when recording a historical update.
+    date: date || new Date().toISOString(),
+    notes: String(notes)
+  };
+}
+
+// validateUpdateCard — non-throwing validation for cards from untrusted sources
+// (future import/UI). Returns { valid, errors } so the caller can surface every
+// problem at once rather than failing on the first. Checks field types and that
+// the status is a recognised enum value.
+// @param {Object} card
+// @returns {{ valid: boolean, errors: string[] }}
+function validateUpdateCard(card) {
+  const errors = [];
+  if (typeof card.role !== 'string') errors.push('role must be a string');
+  if (!isValidUpdateStatus(card.status)) errors.push(`status must be one of: ${UPDATE_STATUSES.join(', ')}`);
+  // date is stored as an ISO string; require a non-empty string here. Format/parse
+  // validation is left to callers that need it — the model only guarantees presence.
+  if (typeof card.date !== 'string' || card.date === '') errors.push('date must be a non-empty string');
+  if (typeof card.notes !== 'string') errors.push('notes must be a string');
+  return { valid: errors.length === 0, errors };
+}
+
+// normalizeCompany — guarantees a company object carries an `updates` array, defaulting
+// a missing or non-array value to []. Returns a shallow copy and leaves every other field
+// (including legacy `status`/`usefulInfo`) untouched. Applied on read in getCompanies()
+// so the in-memory shape always includes `updates` without rewriting stored data — that
+// persistence/migration step belongs to JST-65.
+// @param {Object} company
+// @returns {Object} the company with a guaranteed `updates` array
+function normalizeCompany(company) {
+  return { ...company, updates: Array.isArray(company.updates) ? company.updates : [] };
+}
 
 // ─── Export functions ─────────────────────────────────────────────────────────
 
@@ -1117,6 +1188,11 @@ if (typeof module !== 'undefined') {
     parseJSONToCompanies,       // Exported for unit testing JSON import logic
     companiesToCSV,             // Exported for unit testing CSV serialisation
     companiesToJSON,            // Exported for unit testing JSON serialisation
-    mergeImportedCompanies      // Exported for unit testing merge/dedup logic
+    mergeImportedCompanies,     // Exported for unit testing merge/dedup logic
+    UPDATE_STATUSES,            // Exported for unit testing the update-card status enum (JST-62)
+    isValidUpdateStatus,        // Exported for unit testing status validation
+    createUpdateCard,           // Exported for unit testing the update-card constructor
+    validateUpdateCard,         // Exported for unit testing update-card validation
+    normalizeCompany            // Exported for unit testing the updates-array defaulting
   };
 }
