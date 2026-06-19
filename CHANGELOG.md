@@ -13,6 +13,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ### Enhancements
 - JST-66: Activity summary generator
+- JST-67: Remove legacy 'Role applied for' field from company record
 
 ## [2026-06-17]
 

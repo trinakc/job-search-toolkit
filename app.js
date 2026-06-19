@@ -286,8 +286,8 @@ function runCompanyMigration() {
 
 // ─── Update card CRUD (JST-63) ─────────────────────────────────────────────────
 // These mutate a single company's `updates` array and persist via saveCompanies,
-// mirroring the saveCompanyInfo/removeCompany pattern (read → locate by index → mutate
-// → save → re-render). The company is located by its index in the full array — the same
+// mirroring the removeCompany pattern (read → locate → mutate → save → re-render). The
+// company is located by its index in the full array — the same
 // index the modal's edit handlers carry in the #edit-index hidden field. Each returns a
 // result object so the modal can show inline validation errors instead of throwing.
 // renderCompanies is guarded because it lives in app-dom.js and is absent under Jest.
@@ -464,12 +464,13 @@ function escapeCSVField(val) {
 }
 
 // companiesToCSV — serializes a company array to a CSV string.
-// Column order: name, location, url, tags, status, roleApplied, usefulInfo, lastClicked, lastUpdated
+// Column order: name, location, url, tags, status, usefulInfo, lastClicked, lastUpdated
+// (roleApplied was removed in JST-67 — role now lives only on update cards.)
 // Tags are pipe-joined ("EM|Delivery") to avoid ambiguity with the comma delimiter.
 // @param {Array} companies
 // @returns {string} CSV text
 function companiesToCSV(companies) {
-  const HEADERS = ['name', 'location', 'url', 'tags', 'status', 'roleApplied', 'usefulInfo', 'lastClicked', 'lastUpdated'];
+  const HEADERS = ['name', 'location', 'url', 'tags', 'status', 'usefulInfo', 'lastClicked', 'lastUpdated'];
   const rows = [HEADERS.join(',')];
   companies.forEach(c => {
     const row = [
@@ -478,7 +479,6 @@ function companiesToCSV(companies) {
       escapeCSVField(c.url),
       escapeCSVField(Array.isArray(c.tags) ? c.tags.join('|') : (c.tags || '')),
       escapeCSVField(c.status),
-      escapeCSVField(c.roleApplied),
       escapeCSVField(c.usefulInfo),
       escapeCSVField(c.lastClicked),
       escapeCSVField(c.lastUpdated)
@@ -606,7 +606,7 @@ function parseCSVToCompanies(csvText) {
     entry.tags = entry.tags ? entry.tags.split('|').map(t => t.trim()).filter(Boolean) : [];
 
     // Normalise empty CSV fields back to null so the shape matches the app's data model
-    ['status', 'roleApplied', 'usefulInfo', 'lastClicked', 'lastUpdated'].forEach(field => {
+    ['status', 'usefulInfo', 'lastClicked', 'lastUpdated'].forEach(field => {
       if (entry[field] === '') entry[field] = null;
     });
 
@@ -860,8 +860,8 @@ function openEditCompanyModal(index) {
   document.getElementById('company-location').value = company.location;
   document.getElementById('company-url').value = company.url;
   document.getElementById('company-tags').value = company.tags.join(', ');
-  // Status is derived from update cards (JST-64), not edited in the modal.
-  document.getElementById('company-role').value = company.roleApplied || '';
+  // Status is derived from update cards (JST-64) and role lives on update cards (JST-67),
+  // so neither is edited in the modal's main section.
 
   // Update cards (JST-63) are only available when editing a saved company, since the
   // company must exist in the array for the CRUD handlers to target it by index.
@@ -888,31 +888,6 @@ function closeModal() {
 
 function removeCompany(name) {
   const companies = getCompanies().filter(c => c.name !== name);
-  saveCompanies(companies);
-  renderCompanies();
-}
-
-function toggleExpand(index) {
-  const expanded = document.getElementById(`expanded-${index}`);
-  const btn = expanded.previousElementSibling;
-  if (expanded.classList.contains('active')) {
-    expanded.classList.remove('active');
-    btn.textContent = 'Show more info';
-  } else {
-    expanded.classList.add('active');
-    btn.textContent = 'Hide more info';
-  }
-}
-
-function saveCompanyInfo(index) {
-  const companies = getCompanies();
-  const company = companies[index];
-  if (!company) return;
-  // Status is derived from update cards (JST-64) and usefulInfo was migrated into update-card
-  // notes (JST-65), so this editor only manages the role applied for.
-  const role = document.getElementById(`role-${index}`).value.trim();
-  company.roleApplied = role;
-  company.lastUpdated = new Date().toISOString();
   saveCompanies(companies);
   renderCompanies();
 }

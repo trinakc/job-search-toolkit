@@ -21,7 +21,6 @@ function makeCompany(name, updates) {
     location: 'Dublin',
     url: `https://${name.toLowerCase().replace(/\s+/g, '')}.example.com`,
     tags: [],
-    roleApplied: '',
     lastClicked: null,
     lastUpdated: null,
     updates

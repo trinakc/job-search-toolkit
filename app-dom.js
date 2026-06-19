@@ -124,9 +124,9 @@ function renderCompanies() {
 
   // Look up the real index of each company in the full unfiltered array.
   // The rendered `companies` array is filtered/sorted, so its map position no
-  // longer matches getCompanies() positions. All onclick handlers that write back
-  // to localStorage (openEditCompanyModal, saveCompanyInfo, toggleExpand) receive
-  // this real index so they operate on the correct entry regardless of sort/filter.
+  // longer matches getCompanies() positions. The onclick handlers that write back
+  // to localStorage (openEditCompanyModal, removeCompany) receive this real index/name
+  // so they operate on the correct entry regardless of sort/filter.
   const allCompanies = getCompanies();
 
   grid.innerHTML = companies.map((company) => {
@@ -146,16 +146,9 @@ function renderCompanies() {
           })()}
           <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
           ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
-          <button class="expand-btn" onclick="toggleExpand(${index})">Show more info</button>
-          <div class="company-expanded" id="expanded-${index}">
-            <div class="expanded-field">
-              <label for="role-${index}">Role applied for</label>
-              <input type="text" id="role-${index}" value="${company.roleApplied || ''}" placeholder="${(typeof API_CONFIG !== 'undefined' && API_CONFIG.ROLE_PLACEHOLDER) ? API_CONFIG.ROLE_PLACEHOLDER : 'e.g. Job Title'}">
-            </div>
-            <!-- "Useful info" removed (JST-65): per-company notes now live in update cards (edit via the modal). -->
-            <button class="save-btn" onclick="saveCompanyInfo(${index})">Save changes</button>
-            ${company.lastUpdated ? `<div class="company-last-updated">Last updated: ${new Date(company.lastUpdated).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
-          </div>
+          <!-- "Show more info" expander removed (JST-67): its only field was the company-level role,
+               which now lives on update cards. Status is derived (JST-64) and useful-info was migrated
+               into cards (JST-65), so all company detail is now edited via the modal's update log. -->
           <button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
           <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
         </div>
@@ -233,7 +226,6 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
     const location = document.getElementById('company-location').value.trim();
     const url = document.getElementById('company-url').value.trim();
     const tags = document.getElementById('company-tags').value.split(',').map(t => t.trim()).filter(t => t);
-    const role = document.getElementById('company-role').value.trim();
     if (!name || !url) return;
 
     const companies = getCompanies();
@@ -243,19 +235,18 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
       // Edit existing company: Update mutable fields while preserving tracking metadata
       // (lastClicked and lastUpdated are set by UI interactions, not form submission).
       // status, usefulInfo and updates are intentionally left untouched here — status is now
-      // derived from update cards (JST-64), usefulInfo is managed elsewhere until JST-65, and
-      // update cards persist via their own handlers.
+      // derived from update cards (JST-64), usefulInfo was migrated into update cards (JST-65), and
+      // update cards persist via their own handlers. Role lives on update cards too (JST-67).
       const company = companies[editIndex];
       company.name = name;
       company.location = location;
       company.url = url;
       company.tags = tags;
-      company.roleApplied = role;
     } else {
       // Add new company: Initialize with null tracking metadata (set on first interaction)
-      // and an empty updates array (JST-62 model). The legacy status/usefulInfo fields are no
-      // longer part of new companies (JST-64 derives status from updates; JST-65 retired usefulInfo).
-      companies.push({ name, location, url, tags, lastClicked: null, roleApplied: role, lastUpdated: null, updates: [] });
+      // and an empty updates array (JST-62 model). Legacy company-level status/usefulInfo/role
+      // fields are no longer part of new companies — that data now lives on update cards.
+      companies.push({ name, location, url, tags, lastClicked: null, lastUpdated: null, updates: [] });
     }
 
     saveCompanies(companies);
