@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -1322,5 +1322,169 @@ describe('import/export round-trip integrity', () => {
     const result = parseJSONToCompanies(json);
 
     expect(result.imported).toEqual([fixture]);
+  });
+});
+
+// ─── Activity summary generator (JST-66) ───────────────────────────────────────
+// These cover the two pure functions behind the Activity summary panel: filtering
+// update cards across all companies by an inclusive date range, and formatting the
+// matches into a copyable Markdown summary grouped by company. The DOM panel, the
+// Generate button, and copy-to-clipboard are covered by Playwright.
+
+// Builds a company with the given name and update cards. Mirrors the real model
+// shape: every company carries an `updates` array of { role, status, date, notes }.
+function makeCompanyWithUpdates(name, updates) {
+  return {
+    name,
+    location: '',
+    url: `https://${name.toLowerCase().replace(/\s+/g, '')}.example.com`,
+    tags: [],
+    roleApplied: '',
+    lastClicked: null,
+    lastUpdated: null,
+    updates
+  };
+}
+
+describe('filterUpdatesInRange', () => {
+  test('groups in-range update cards by company', () => {
+    const companies = [
+      makeCompanyWithUpdates('Acme', [
+        { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'a' }
+      ]),
+      makeCompanyWithUpdates('Globex', [
+        { role: '', status: 'Considering', date: '2026-06-11T00:00:00.000Z', notes: 'b' }
+      ])
+    ];
+
+    const result = filterUpdatesInRange(companies, '2026-06-01', '2026-06-30');
+
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('Acme');
+    expect(result[0].updates).toHaveLength(1);
+    expect(result[1].name).toBe('Globex');
+    expect(result[1].updates).toHaveLength(1);
+  });
+
+  test('excludes companies with no update cards in the range', () => {
+    const companies = [
+      makeCompanyWithUpdates('InRange', [
+        { role: '', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' }
+      ]),
+      makeCompanyWithUpdates('OutOfRange', [
+        { role: '', status: 'Applied', date: '2026-01-01T00:00:00.000Z', notes: '' }
+      ]),
+      makeCompanyWithUpdates('NoUpdates', [])
+    ];
+
+    const result = filterUpdatesInRange(companies, '2026-06-01', '2026-06-30');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('InRange');
+  });
+
+  test('range is inclusive of both the start and end day', () => {
+    // Cards stored at UTC midnight; a card dated exactly on the start or end day must be included.
+    const companies = [
+      makeCompanyWithUpdates('Edges', [
+        { role: '', status: 'Applied', date: '2026-06-01T00:00:00.000Z', notes: 'on start' },
+        { role: '', status: 'Applied', date: '2026-06-30T00:00:00.000Z', notes: 'on end' }
+      ])
+    ];
+
+    const result = filterUpdatesInRange(companies, '2026-06-01', '2026-06-30');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].updates).toHaveLength(2);
+  });
+
+  test('excludes cards on the day before the start and the day after the end', () => {
+    const companies = [
+      makeCompanyWithUpdates('JustOutside', [
+        { role: '', status: 'Applied', date: '2026-05-31T00:00:00.000Z', notes: 'day before' },
+        { role: '', status: 'Applied', date: '2026-07-01T00:00:00.000Z', notes: 'day after' }
+      ])
+    ];
+
+    const result = filterUpdatesInRange(companies, '2026-06-01', '2026-06-30');
+
+    expect(result).toHaveLength(0);
+  });
+
+  test('sorts the cards within a company by date ascending', () => {
+    const companies = [
+      makeCompanyWithUpdates('Acme', [
+        { role: '', status: 'Interviewing', date: '2026-06-20T00:00:00.000Z', notes: 'later' },
+        { role: '', status: 'Applied', date: '2026-06-05T00:00:00.000Z', notes: 'earlier' }
+      ])
+    ];
+
+    const result = filterUpdatesInRange(companies, '2026-06-01', '2026-06-30');
+
+    expect(result[0].updates.map(c => c.notes)).toEqual(['earlier', 'later']);
+  });
+});
+
+describe('buildActivitySummary', () => {
+  test('produces a Markdown heading per company with status, role, date, and notes', () => {
+    const companies = [
+      makeCompanyWithUpdates('Acme Corp', [
+        { role: 'Engineering Manager', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'Applied via referral' }
+      ])
+    ];
+
+    const summary = buildActivitySummary(companies, '2026-06-01', '2026-06-30');
+
+    expect(summary).toContain('## Acme Corp');
+    expect(summary).toContain('Applied');
+    expect(summary).toContain('Engineering Manager');
+    expect(summary).toContain('Applied via referral');
+    // Date formatted in UTC like the rest of the app (e.g. "10 Jun 2026").
+    expect(summary).toContain('2026');
+  });
+
+  test('omits the role segment when the card has no role', () => {
+    const companies = [
+      makeCompanyWithUpdates('Globex', [
+        { role: '', status: 'Considering', date: '2026-06-09T00:00:00.000Z', notes: '' }
+      ])
+    ];
+
+    const summary = buildActivitySummary(companies, '2026-06-01', '2026-06-30');
+
+    expect(summary).toContain('Considering');
+    // No empty "— —" role separator should leak into the line.
+    expect(summary).not.toMatch(/—\s+—/);
+  });
+
+  test('returns a clear empty-state message when no cards fall in the range', () => {
+    const companies = [
+      makeCompanyWithUpdates('Acme', [
+        { role: '', status: 'Applied', date: '2026-01-01T00:00:00.000Z', notes: '' }
+      ])
+    ];
+
+    const summary = buildActivitySummary(companies, '2026-06-01', '2026-06-30');
+
+    // A non-empty, human-readable message — never a blank string.
+    expect(summary.trim().length).toBeGreaterThan(0);
+    expect(summary.toLowerCase()).toContain('no activity');
+  });
+
+  test('reads as a structured log spanning multiple companies', () => {
+    const companies = [
+      makeCompanyWithUpdates('Acme', [
+        { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'one' }
+      ]),
+      makeCompanyWithUpdates('Globex', [
+        { role: 'PM', status: 'Interviewing', date: '2026-06-12T00:00:00.000Z', notes: 'two' }
+      ])
+    ];
+
+    const summary = buildActivitySummary(companies, '2026-06-01', '2026-06-30');
+
+    expect(summary).toContain('## Acme');
+    expect(summary).toContain('## Globex');
+    expect(summary.indexOf('## Acme')).toBeLessThan(summary.indexOf('## Globex'));
   });
 });
