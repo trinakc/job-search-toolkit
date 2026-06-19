@@ -14,7 +14,8 @@ const FEATURES = {
   tracker: true,   // Job tracker - enabled now that live search is available
   companies: true, // Company tracker - working
   alerts: false,   // Google alerts - disabled due to hardcoded personal search strings
-  scorer: false    // Job fit scorer - disabled due to hardcoded personal profile
+  scorer: false,   // Job fit scorer - disabled due to hardcoded personal profile
+  summary: true    // Activity summary generator - enabled (JST-66)
 };
 
 // Function to check if a feature is enabled
@@ -360,6 +361,75 @@ function deleteUpdateCard(companyIndex, cardIndex) {
   saveCompanies(companies);
   if (typeof renderCompanies === 'function') renderCompanies();
   return { ok: true, updates: company.updates };
+}
+
+// ─── Activity summary generator (JST-66) ───────────────────────────────────────
+// Cross-company reporting: given a date range, collect every update card whose date
+// falls within it and format the result as a copyable Markdown log grouped by company.
+// Both functions are pure (no DOM, no localStorage) so they are unit-testable; the
+// Activity summary panel, Generate button, and copy-to-clipboard live in app-dom.js.
+
+// filterUpdatesInRange — returns one { name, updates } entry per company that has at
+// least one update card within the inclusive date range, with that company's matching
+// cards sorted by date ascending. Companies with no in-range cards are omitted.
+// startDate/endDate are YYYY-MM-DD strings from the panel's native date inputs; they are
+// widened to a full UTC day (00:00:00.000 → 23:59:59.999) so the comparison matches the
+// UTC-midnight convention update cards are stored with (see submitUpdateForm) and so a
+// card dated on the end day is included rather than excluded.
+// @param {Array} companies
+// @param {string} startDate — inclusive lower bound, 'YYYY-MM-DD'
+// @param {string} endDate — inclusive upper bound, 'YYYY-MM-DD'
+// @returns {{ name: string, updates: Object[] }[]}
+function filterUpdatesInRange(companies, startDate, endDate) {
+  const startTime = Date.parse(`${startDate}T00:00:00.000Z`);
+  const endTime = Date.parse(`${endDate}T23:59:59.999Z`);
+
+  return (companies || []).reduce((acc, company) => {
+    const updates = Array.isArray(company.updates) ? company.updates : [];
+    const inRange = updates.filter(card => {
+      const cardTime = Date.parse(card.date);
+      // A missing/unparseable date yields NaN, which fails both comparisons and is dropped.
+      return cardTime >= startTime && cardTime <= endTime;
+    });
+    if (inRange.length === 0) return acc;
+    // Copy before sorting so we never reorder the company's stored updates array.
+    const sorted = inRange.slice().sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+    acc.push({ name: company.name, updates: sorted });
+    return acc;
+  }, []);
+}
+
+// buildActivitySummary — formats the in-range activity as a Markdown string: one `##`
+// heading per company, then one bullet per update card carrying status, role (omitted
+// when blank), and date, with any notes on an indented continuation line. Dates are
+// formatted in UTC to match renderUpdateCards and avoid an off-by-one day shift. When
+// nothing falls in the range it returns a single human-readable empty-state line so the
+// UI can show the message verbatim instead of a blank area.
+// @param {Array} companies
+// @param {string} startDate — 'YYYY-MM-DD'
+// @param {string} endDate — 'YYYY-MM-DD'
+// @returns {string} Markdown summary (or an empty-state message)
+function buildActivitySummary(companies, startDate, endDate) {
+  const groups = filterUpdatesInRange(companies, startDate, endDate);
+
+  if (groups.length === 0) {
+    return `No activity between ${startDate} and ${endDate}.`;
+  }
+
+  // Blank line between company blocks keeps the Markdown (and plain-text paste) readable.
+  return groups.map(group => {
+    const lines = [`## ${group.name}`];
+    group.updates.forEach(card => {
+      const dateLabel = card.date
+        ? new Date(card.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+        : '';
+      // Role is optional, so only join the segments that have content.
+      const segments = [`**${card.status}**`, card.role, dateLabel].filter(Boolean);
+      lines.push(`- ${segments.join(' — ')}`);
+      if (card.notes) lines.push(`  ${card.notes}`);
+    });
+    return lines.join('\n');
+  }).join('\n\n');
 }
 
 // escapeHtml — escapes the five HTML-significant characters so free-text update-card
@@ -1543,6 +1613,8 @@ if (typeof module !== 'undefined') {
     getLatestUpdateCard,        // Exported for unit testing latest-card selection (JST-64)
     deriveCompanyStatus,        // Exported for unit testing derived company status
     migrateCompanies,           // Exported for unit testing legacy-data migration (JST-65)
-    runCompanyMigration         // Exported for unit testing the on-load migration entry point
+    runCompanyMigration,        // Exported for unit testing the on-load migration entry point
+    filterUpdatesInRange,       // Exported for unit testing date-range filtering (JST-66)
+    buildActivitySummary        // Exported for unit testing the Markdown activity summary
   };
 }

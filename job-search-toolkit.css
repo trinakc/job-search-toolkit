@@ -1436,3 +1436,45 @@ textarea:focus {
   padding: 1px 4px;
   font-family: var(--mono);
 }
+
+/* ─── Activity summary (JST-66) ──────────────────────────────────────────────── */
+
+/* Date-range row: From/To inputs and the Generate button sit on one line, wrapping
+   on narrow screens. Mirrors the .company-controls layout for visual consistency. */
+.summary-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+/* Each label + date-input pair, stacked like .company-control-group */
+.summary-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The Generate button aligns to the bottom of the input row */
+#summary-generate-btn {
+  align-self: flex-end;
+  margin-bottom: 0;
+}
+
+/* Copy button sits at the top-right of the output box */
+#summary-result .copy-btn {
+  float: right;
+}
+
+/* Monospace, pre-wrapped output so the Markdown shows literally and long notes wrap
+   instead of overflowing. Faithful to what gets copied to the clipboard. */
+.summary-output {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+}

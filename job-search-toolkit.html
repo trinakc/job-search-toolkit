@@ -35,6 +35,8 @@
       <!-- Live jobs nav button — shown when FEATURES.jobs is true (app-dom.js hides it otherwise) -->
       <button onclick="show('jobs', this)">Live jobs</button>
       <button onclick="show('companies', this)">Company tracker</button>
+      <!-- Activity summary nav button — shown when FEATURES.summary is true (app-dom.js hides it otherwise) -->
+      <button onclick="show('summary', this)">Activity summary</button>
       <button id="tracker-nav-btn" onclick="show('tracker', this)">My tracker</button>
       <button onclick="show('alerts', this)">Google alerts</button>
       <button onclick="show('scorer', this)">Job fit scorer</button>
@@ -183,6 +185,32 @@
         <textarea id="jd" placeholder="Paste the full job description here..."></textarea>
         <button class="analyse-btn" id="analyse-btn" onclick="scoreJob()">Analyse fit</button>
         <div id="score-result"></div>
+      </div>
+
+      <!-- Activity summary (JST-66): pick a date range and generate a copyable Markdown
+           log of every update card in that range, grouped by company. Defaults to the last
+           week (set in app-dom.js init) so it is usable for a weekly review out of the box. -->
+      <div id="summary" class="panel">
+        <h2>Activity summary</h2>
+        <p class="panel-desc">Generate a copyable log of all your update cards within a date range, grouped by
+          company. Handy for INTREO meetings, weekly reviews, or personal records.</p>
+        <div class="summary-controls">
+          <div class="summary-control-group">
+            <label for="summary-start" class="control-label">From</label>
+            <input type="date" id="summary-start">
+          </div>
+          <div class="summary-control-group">
+            <label for="summary-end" class="control-label">To</label>
+            <input type="date" id="summary-end">
+          </div>
+          <button class="add-company-btn" id="summary-generate-btn" onclick="renderActivitySummary()">Generate summary</button>
+        </div>
+        <!-- Output area: populated by renderActivitySummary(); the Copy button copies the
+             last generated summary via copyActivitySummary(). Both start hidden until Generate. -->
+        <div id="summary-result" class="result-box" hidden>
+          <button class="copy-btn" id="summary-copy-btn" onclick="copyActivitySummary(this)">Copy summary</button>
+          <pre id="summary-output" class="summary-output"></pre>
+        </div>
       </div>
 
     </main>

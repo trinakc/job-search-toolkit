@@ -182,6 +182,46 @@ function renderAlerts() {
   `).join('');
 }
 
+// Holds the most recently generated activity summary so the Copy button copies the exact
+// text shown without re-deriving it. Reset to '' whenever the panel can't produce output.
+let lastActivitySummary = '';
+
+// renderActivitySummary — reads the From/To date inputs, builds the Markdown summary from all
+// companies' update cards in range (buildActivitySummary in app.js), and writes it into the
+// output box. Uses textContent (not innerHTML) so the Markdown shows literally and any free-text
+// notes can't inject markup. Both dates are required; a missing one shows an inline hint instead.
+function renderActivitySummary() {
+  const start = document.getElementById('summary-start').value;
+  const end = document.getElementById('summary-end').value;
+  const result = document.getElementById('summary-result');
+  const output = document.getElementById('summary-output');
+
+  // Guard: both bounds are needed to form a range. Show the box with a hint rather than
+  // generating against an open-ended range.
+  if (!start || !end) {
+    lastActivitySummary = '';
+    output.textContent = 'Please choose both a start and end date.';
+    result.hidden = false;
+    return;
+  }
+
+  lastActivitySummary = buildActivitySummary(getCompanies(), start, end);
+  output.textContent = lastActivitySummary;
+  result.hidden = false;
+}
+
+// copyActivitySummary — copies the last generated summary to the clipboard, mirroring the
+// copyAlert feedback pattern: swap the label to "Copied!" with the .copied class, then restore
+// after 2s. No-op when there is no generated summary (e.g. the date-hint state).
+// @param {HTMLElement} btn — the Copy button, used for the transient feedback state
+function copyActivitySummary(btn) {
+  if (!lastActivitySummary) return;
+  navigator.clipboard.writeText(lastActivitySummary).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy summary'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
 if (typeof window !== 'undefined' && document.getElementById('add-company-form')) {
   // One-time legacy-data migration (JST-65): fold any pre-existing usefulInfo/status into an
   // update card and drop the old fields. Runs before the first render so the grid reflects it.
@@ -230,6 +270,18 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
   });
+
+  // Activity summary (JST-66): default the range to the last 7 days so the panel is usable
+  // for a weekly review without first picking dates. slice(0,10) yields the YYYY-MM-DD the
+  // native date inputs expect; we go via UTC to match how update-card dates are stored.
+  const summaryStart = document.getElementById('summary-start');
+  const summaryEnd = document.getElementById('summary-end');
+  if (summaryStart && summaryEnd) {
+    const today = new Date();
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    summaryEnd.value = today.toISOString().slice(0, 10);
+    summaryStart.value = weekAgo.toISOString().slice(0, 10);
+  }
 
   // Feature flag initialization: Hide UI elements for disabled features
   // This keeps the app flexible—disabled features remain in HTML but are invisible
