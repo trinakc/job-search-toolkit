@@ -17,7 +17,6 @@ function legacyCompany(name, status, usefulInfo) {
     tags: ['EM'],
     lastClicked: null,
     status,
-    roleApplied: '',
     usefulInfo
     // intentionally no `updates` key — this is old data predating JST-62
   };

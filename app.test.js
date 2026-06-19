@@ -76,7 +76,7 @@ describe('getCompanies', () => {
   const TEST_COMPANIES = [
     // updates: [] is part of the company shape since JST-62. getCompanies() normalizes every
     // company on read, so the value returned always carries an updates array.
-    { name: 'Test Corp', location: 'Dublin · Test SaaS', url: 'https://testcorp.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null, updates: [] }
+    { name: 'Test Corp', location: 'Dublin · Test SaaS', url: 'https://testcorp.com/careers', tags: ['EM'], lastClicked: null, status: null, usefulInfo: '', lastUpdated: null, updates: [] }
   ];
 
   beforeEach(() => {
@@ -272,7 +272,7 @@ describe('normalizeCompany', () => {
 // Seeds one company (with an empty updates array) into mock localStorage and returns it.
 // Mirrors how the app persists companies so getCompanies() reads them back normalized.
 function seedOneCompany() {
-  const company = { name: 'Acme', location: 'Dublin', url: 'https://acme.com/careers', tags: ['EM'], lastClicked: null, status: null, roleApplied: '', usefulInfo: '', lastUpdated: null, updates: [] };
+  const company = { name: 'Acme', location: 'Dublin', url: 'https://acme.com/careers', tags: ['EM'], lastClicked: null, status: null, usefulInfo: '', lastUpdated: null, updates: [] };
   localStorage.setItem('jst_companies_v1', JSON.stringify([company]));
   return company;
 }
@@ -522,7 +522,7 @@ describe('migrateCompanies', () => {
 
 describe('runCompanyMigration', () => {
   test('migrates companies in localStorage and persists the result', () => {
-    const seeded = [{ name: 'Acme', location: 'Dublin', url: 'https://acme.com', tags: ['EM'], lastClicked: null, status: 'interviewing', roleApplied: '', usefulInfo: 'Met the hiring manager', lastUpdated: null, updates: [] }];
+    const seeded = [{ name: 'Acme', location: 'Dublin', url: 'https://acme.com', tags: ['EM'], lastClicked: null, status: 'interviewing', usefulInfo: 'Met the hiring manager', lastUpdated: null, updates: [] }];
     localStorage.setItem('jst_companies_v1', JSON.stringify(seeded));
 
     runCompanyMigration();
@@ -1042,7 +1042,7 @@ describe('parseCSVToCompanies', () => {
   // ── Test 1: Happy path ───────────────────────────────────────────────────────
   // Verifies that a well-formed CSV row produces a correctly shaped company object.
   test('parses a valid CSV and returns the correct company objects', () => {
-    const csv = 'name,location,url,tags,status,roleApplied,usefulInfo,lastClicked,lastUpdated\nDatadog,Dublin,https://careers.datadoghq.com,EM|DevOps,applied,Engineering Manager,Great team,,';
+    const csv = 'name,location,url,tags,status,usefulInfo,lastClicked,lastUpdated\nDatadog,Dublin,https://careers.datadoghq.com,EM|DevOps,applied,Great team,,';
 
     const result = parseCSVToCompanies(csv);
 
@@ -1183,6 +1183,15 @@ describe('companiesToCSV', () => {
     expect(header).toContain('tags');
   });
 
+  // ── Test 1b: Legacy roleApplied column is gone (JST-67) ──────────────────────
+  // The company-level "Role applied for" field was removed; role now lives only on
+  // update cards. The export header must no longer advertise a roleApplied column.
+  test('does not include the removed roleApplied column', () => {
+    const header = companiesToCSV([]).split('\n')[0];
+
+    expect(header).not.toContain('roleApplied');
+  });
+
   // ── Test 2: Tags serialization ───────────────────────────────────────────────
   // Tags must use pipe (|) not comma — commas are the CSV delimiter.
   test('serializes tags array as pipe-separated values', () => {
@@ -1297,7 +1306,6 @@ describe('import/export round-trip integrity', () => {
     url: 'https://acme.com',
     tags: ['EM', 'IC'],
     status: 'applied',
-    roleApplied: 'Engineering Manager',
     usefulInfo: 'Great team',
     lastClicked: null,
     lastUpdated: null
@@ -1339,7 +1347,6 @@ function makeCompanyWithUpdates(name, updates) {
     location: '',
     url: `https://${name.toLowerCase().replace(/\s+/g, '')}.example.com`,
     tags: [],
-    roleApplied: '',
     lastClicked: null,
     lastUpdated: null,
     updates

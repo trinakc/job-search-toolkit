@@ -13,8 +13,8 @@ const APP_URL = '/job-search-toolkit.html';
 
 // Minimal CSV fixture: one valid company row with pipe-separated tags
 const IMPORT_CSV = [
-  'name,location,url,tags,status,roleApplied,usefulInfo,lastClicked,lastUpdated',
-  'Playwright Import Co,Dublin,https://playwright-import.example.com,EM|Test,,,,,'
+  'name,location,url,tags,status,usefulInfo,lastClicked,lastUpdated',
+  'Playwright Import Co,Dublin,https://playwright-import.example.com,EM|Test,,,,'
 ].join('\n');
 
 // ─── Test 1: Navigate to Company tracker ─────────────────────────────────────

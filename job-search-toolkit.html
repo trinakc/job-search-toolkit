@@ -113,7 +113,7 @@
         <details class="import-format-help">
           <summary>Import format</summary>
           <div class="import-format-body">
-            <p><strong>CSV</strong> — first row must be a header. Required columns: <code>name</code>, <code>url</code>. Optional: <code>location</code>, <code>tags</code>, <code>status</code>, <code>roleApplied</code>, <code>usefulInfo</code>, <code>lastClicked</code>, <code>lastUpdated</code>. Tags are pipe-separated: <code>EM|DevOps</code>.</p>
+            <p><strong>CSV</strong> — first row must be a header. Required columns: <code>name</code>, <code>url</code>. Optional: <code>location</code>, <code>tags</code>, <code>status</code>, <code>usefulInfo</code>, <code>lastClicked</code>, <code>lastUpdated</code>. Tags are pipe-separated: <code>EM|DevOps</code>.</p>
             <p><strong>JSON</strong> — a top-level array of objects with the same field names. Required: <code>name</code> and <code>url</code>. All other fields are optional.</p>
             <p>Rows missing <code>name</code> or <code>url</code> are skipped. Companies with a name that already exists are not overwritten. Use <em>Export CSV</em> or <em>Export JSON</em> to see the exact format.</p>
           </div>
@@ -230,8 +230,7 @@
         <label for="company-tags">Tags (comma separated)</label>
         <input type="text" id="company-tags" placeholder="e.g. EM, Delivery, Remote">
         <!-- Status removed (JST-64): a company's status is derived from its update cards below. -->
-        <label for="company-role">Role applied for</label>
-        <input type="text" id="company-role" placeholder="e.g. Delivery Manager">
+        <!-- "Role applied for" removed (JST-67): role is recorded per update card, not at company level. -->
         <!-- Update log (JST-63): replaces the old free-text "useful info" textarea in the modal.
              Shown only when editing a saved company (hidden in Add mode). Controls are
              type="button" so they never submit the outer #add-company-form. -->

@@ -24,9 +24,9 @@ const OLD_DATE = '2024-01-01T00:00:00.000Z';   // well outside any N-day window
 
 const FIXTURE_COMPANIES = [
   // Beta comes first in the array so default alpha-asc sort is a visible change
-  { name: 'Beta Ltd',   location: 'Dublin', url: 'https://beta.example.com',  tags: ['EM', 'Scrum'],    lastClicked: TODAY,     status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.example.com', tags: ['EM', 'Delivery'], lastClicked: OLD_DATE,  status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
-  { name: 'Gamma GmbH', location: 'Dublin', url: 'https://gamma.example.com', tags: [],                 lastClicked: null,      status: null, roleApplied: '', usefulInfo: '', lastUpdated: null },
+  { name: 'Beta Ltd',   location: 'Dublin', url: 'https://beta.example.com',  tags: ['EM', 'Scrum'],    lastClicked: TODAY,     status: null, usefulInfo: '', lastUpdated: null },
+  { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.example.com', tags: ['EM', 'Delivery'], lastClicked: OLD_DATE,  status: null, usefulInfo: '', lastUpdated: null },
+  { name: 'Gamma GmbH', location: 'Dublin', url: 'https://gamma.example.com', tags: [],                 lastClicked: null,      status: null, usefulInfo: '', lastUpdated: null },
 ];
 
 // Seeds FIXTURE_COMPANIES into localStorage before navigating to the page.
@@ -160,7 +160,7 @@ test('date filter hides companies checked within the threshold', async ({ page }
 
 // ─── Test 8: Edit/expand operate on the correct company after sort/filter ────
 // Regression test for the bug where rendered card index was passed directly to
-// openEditCompanyModal() and saveCompanyInfo(). After filtering, card position 0
+// openEditCompanyModal(). After filtering, card position 0
 // no longer corresponds to getCompanies()[0], so using the map index would open
 // the wrong company's data in the modal.
 //

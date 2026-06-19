@@ -21,7 +21,6 @@ function makeCompany(updates) {
     tags: ['EM'],
     lastClicked: null,
     status: null,
-    roleApplied: '',
     usefulInfo: '',
     lastUpdated: null,
     updates: updates || []
