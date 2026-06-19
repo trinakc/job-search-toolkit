@@ -1132,6 +1132,16 @@ textarea:focus {
   color: var(--text2);
   margin: 6px 0 0;
   white-space: pre-wrap;
+  overflow-wrap: break-word; /* break long unbroken strings (e.g. URLs) so notes wrap inside the card */
+  word-break: break-word;    /* fallback for browsers that don't honour overflow-wrap on long tokens */
+}
+
+/* Break long unbroken content (e.g. pasted URLs) in the update-card notes textarea so it
+   stays visible without horizontal scroll. Scoped to this field only — other textareas keep
+   their default wrapping. */
+#update-card-notes {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .update-card-actions {

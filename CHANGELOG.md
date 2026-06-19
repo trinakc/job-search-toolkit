@@ -14,6 +14,9 @@ Entries are added manually after each working session, pulled from the Notion pr
 ### Enhancements
 - JST-66: Activity summary generator
 
+### Defects fixed
+- JST-68: Company tracker: Update card notes field text not wrapping
+
 ## [2026-06-17]
 
 ### Enhancements
