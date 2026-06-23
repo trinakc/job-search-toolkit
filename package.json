@@ -27,6 +27,9 @@
     "url": "https://github.com/trinakc/job-search-toolkit/issues"
   },
   "homepage": "https://github.com/trinakc/job-search-toolkit#readme",
+  "overrides": {
+    "@babel/core": "^7.29.6"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
