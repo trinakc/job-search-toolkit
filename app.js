@@ -163,6 +163,19 @@ function createUpdateCard({ role = '', status, date, notes = '' } = {}) {
   };
 }
 
+// buildInitialUpdates — JST-72. Decides the `updates` array for a company being created
+// via the Add Company modal's optional initial-update section. A pre-populated card is only
+// produced when the section is expanded AND a status has been chosen — status is the minimum
+// for a valid card (createUpdateCard throws otherwise). A collapsed section, or an expanded
+// one with no status selected, returns [] so no blank card is ever created. Kept DOM-free
+// (the caller reads the fields) so the create-or-not rule is unit-testable.
+// @param {{ expanded: boolean, role?: string, status?: string, date?: string, notes?: string }} input
+// @returns {Array} [] or a single-element array containing the new update card
+function buildInitialUpdates({ expanded, role, status, date, notes } = {}) {
+  if (!expanded || !status) return [];
+  return [createUpdateCard({ role, status, date, notes })];
+}
+
 // validateUpdateCard — non-throwing validation for cards from untrusted sources
 // (future import/UI). Returns { valid, errors } so the caller can surface every
 // problem at once rather than failing on the first. Checks field types and that
@@ -840,9 +853,16 @@ function openAddCompanyModal() {
   document.getElementById('modal-title').textContent = 'Add new company';
   document.getElementById('modal-submit-btn').textContent = 'Save company';
   document.getElementById('edit-index').value = '-1';
-  // Hide the update-cards section — a not-yet-saved company has nothing to attach cards to.
+  // Hide the edit-mode update-cards section — a not-yet-saved company has nothing to attach
+  // cards to. The Add-mode initial-update section (JST-72) is shown instead, starting collapsed.
   const section = document.getElementById('update-cards-section');
   if (section) section.classList.add('hidden');
+  const initialSection = document.getElementById('initial-update-section');
+  if (initialSection) {
+    initialSection.classList.remove('hidden');
+    populateInitialUpdateStatusOptions();
+    resetInitialUpdateForm();
+  }
   document.getElementById('add-company-modal').classList.add('active');
   document.getElementById('company-name').focus();
 }
@@ -871,6 +891,9 @@ function openEditCompanyModal(index) {
     resetUpdateForm();
     renderUpdateCards(index);
   }
+  // The Add-mode initial-update section (JST-72) has no place when editing — hide it.
+  const initialSection = document.getElementById('initial-update-section');
+  if (initialSection) initialSection.classList.add('hidden');
 
   document.getElementById('add-company-modal').classList.add('active');
   document.getElementById('company-name').focus();
@@ -884,6 +907,8 @@ function closeModal() {
   document.getElementById('edit-index').value = '-1';
   // Collapse the inline update panel so it isn't left open the next time the modal opens.
   resetUpdateForm();
+  // Collapse and clear the Add-mode initial-update section too (JST-72).
+  resetInitialUpdateForm();
 }
 
 function removeCompany(name) {
@@ -947,6 +972,56 @@ function renderUpdateCards(companyIndex) {
         </div>
       </div>`;
   }).join('');
+}
+
+// ─── Initial update card on company creation (JST-72) ──────────────────────────
+// Add-mode-only UI: an optional, collapsed "+ Add update" section in the Add Company modal
+// that lets the user log one update card while creating the company. Distinct from the
+// edit-mode #update-cards-section above, whose CRUD handlers target a saved company by index.
+// The card is materialised at save time in the form submit handler via buildInitialUpdates().
+
+// populateInitialUpdateStatusOptions — fills the Add-mode status <select> from UPDATE_STATUSES,
+// led by a blank option so "no status chosen" is representable (the signal for "no card").
+// No-op once populated. Mirrors populateUpdateStatusOptions but keeps the leading blank.
+function populateInitialUpdateStatusOptions() {
+  const select = document.getElementById('initial-update-status');
+  // +1 accounts for the leading blank option that the edit-mode select does not have.
+  if (!select || select.options.length === UPDATE_STATUSES.length + 1) return;
+  select.innerHTML = '<option value="">Select status…</option>' +
+    UPDATE_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+// resetInitialUpdateForm — collapses the initial-update fields, marks the toggle unexpanded,
+// and clears the four fields so the section starts fresh each time the Add modal opens.
+function resetInitialUpdateForm() {
+  const fields = document.getElementById('initial-update-fields');
+  if (!fields) return;
+  fields.classList.add('hidden');
+  const toggle = document.getElementById('initial-update-toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  document.getElementById('initial-update-role').value = '';
+  document.getElementById('initial-update-date').value = '';
+  document.getElementById('initial-update-notes').value = '';
+  const status = document.getElementById('initial-update-status');
+  if (status && status.options.length) status.selectedIndex = 0;
+}
+
+// toggleInitialUpdate — expands/collapses the initial-update fields behind the "+ Add update"
+// toggle and keeps aria-expanded in sync for assistive tech. On expand it populates the status
+// options, defaults the date to today (matching openAddUpdateForm), and focuses the first field.
+function toggleInitialUpdate() {
+  const fields = document.getElementById('initial-update-fields');
+  const toggle = document.getElementById('initial-update-toggle');
+  if (!fields || !toggle) return;
+  const willExpand = fields.classList.contains('hidden');
+  fields.classList.toggle('hidden', !willExpand);
+  toggle.setAttribute('aria-expanded', String(willExpand));
+  if (willExpand) {
+    populateInitialUpdateStatusOptions();
+    const date = document.getElementById('initial-update-date');
+    if (!date.value) date.value = new Date().toISOString().slice(0, 10);
+    document.getElementById('initial-update-role').focus();
+  }
 }
 
 // resetUpdateForm — hides and clears the inline add/edit panel and any error text.
@@ -1579,6 +1654,7 @@ if (typeof module !== 'undefined') {
     UPDATE_STATUSES,            // Exported for unit testing the update-card status enum (JST-62)
     isValidUpdateStatus,        // Exported for unit testing status validation
     createUpdateCard,           // Exported for unit testing the update-card constructor
+    buildInitialUpdates,        // Exported for unit testing the initial-update rule (JST-72)
     validateUpdateCard,         // Exported for unit testing update-card validation
     normalizeCompany,           // Exported for unit testing the updates-array defaulting
     addUpdateCard,              // Exported for unit testing update-card add (JST-63)

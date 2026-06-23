@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary } = require('./app');
+const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary, buildInitialUpdates } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -203,6 +203,49 @@ describe('createUpdateCard', () => {
 
   test('throws when status is missing entirely', () => {
     expect(() => createUpdateCard({ role: 'EM' })).toThrow();
+  });
+});
+
+// buildInitialUpdates decides whether a company created via the Add Company modal's optional
+// initial-update section starts with one pre-populated update card (JST-72). The rule: a card
+// is created only when the section is expanded AND a status is chosen. Collapsed, or expanded
+// with no status, yields an empty updates array — no blank card is ever created.
+describe('buildInitialUpdates', () => {
+  test('returns an empty array when the section is collapsed, even if a status is set', () => {
+    // A status picked then collapsed must not produce a card — collapsed means "no update".
+    const updates = buildInitialUpdates({ expanded: false, role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'x' });
+    expect(updates).toEqual([]);
+  });
+
+  test('returns an empty array when expanded but no status is selected', () => {
+    // The blank status option ('') is the minimum-not-met case: no card despite other fields.
+    const updates = buildInitialUpdates({ expanded: true, role: 'EM', status: '', date: '2026-06-10T00:00:00.000Z', notes: 'typed but no status' });
+    expect(updates).toEqual([]);
+  });
+
+  test('returns one card with defaulted role/notes and a valid date when only a status is given', () => {
+    const updates = buildInitialUpdates({ expanded: true, status: 'Considering' });
+    expect(updates).toHaveLength(1);
+    expect(updates[0].status).toBe('Considering');
+    expect(updates[0].role).toBe('');
+    expect(updates[0].notes).toBe('');
+    expect(Number.isNaN(Date.parse(updates[0].date))).toBe(false);
+  });
+
+  test('returns one card preserving every field when expanded and fully filled in', () => {
+    const updates = buildInitialUpdates({
+      expanded: true,
+      role: 'Engineering Manager',
+      status: 'Applied',
+      date: '2026-06-10T00:00:00.000Z',
+      notes: 'Applied via referral'
+    });
+    expect(updates).toEqual([{
+      role: 'Engineering Manager',
+      status: 'Applied',
+      date: '2026-06-10T00:00:00.000Z',
+      notes: 'Applied via referral'
+    }]);
   });
 });
 
