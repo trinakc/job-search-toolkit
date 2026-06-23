@@ -25,6 +25,11 @@ Always read the relevant existing files before starting. Understand the current 
 
 Do not guess at structure. Read first.
 
+## Git Branching
+- Always branch from `main`, never from another feature or bugfix branch
+- Before creating a new branch, run `git checkout main && git pull origin main`
+- Never base work on the current active branch without explicit instruction
+
 ## Workflow skills
 
 Use the `/vertical-slice` skill at the start of every new JST ticket. It enforces a plan-mode-first workflow: reads the story, explores affected code, maps dependencies, and waits for plan approval before any files are written.
