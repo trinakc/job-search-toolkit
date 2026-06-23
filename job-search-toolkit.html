@@ -256,6 +256,26 @@
             </div>
           </div>
         </div>
+        <!-- Initial update (JST-72): Add-mode only. Lets the user optionally log a first
+             update card while creating the company, behind a collapsed "+ Add update" toggle.
+             Distinct from #update-cards-section above (the Edit-mode CRUD UI). The card is
+             built at save time, so there is no per-card Save button here — only fields.
+             Controls are type="button" so they never submit the outer #add-company-form. -->
+        <div id="initial-update-section" class="update-cards-section hidden">
+          <button type="button" id="initial-update-toggle" class="add-update-btn"
+                  aria-expanded="false" aria-controls="initial-update-fields"
+                  onclick="toggleInitialUpdate()">+ Add update</button>
+          <div id="initial-update-fields" class="update-card-form hidden">
+            <label for="initial-update-role">Role</label>
+            <input type="text" id="initial-update-role" placeholder="e.g. Engineering Manager">
+            <label for="initial-update-status">Status</label>
+            <select id="initial-update-status"></select>
+            <label for="initial-update-date">Date</label>
+            <input type="date" id="initial-update-date">
+            <label for="initial-update-notes">Notes</label>
+            <textarea id="initial-update-notes" placeholder="Notes about this update"></textarea>
+          </div>
+        </div>
         <div class="modal-actions">
           <button type="button" onclick="closeModal()">Cancel</button>
           <button type="submit" id="modal-submit-btn">Save company</button>

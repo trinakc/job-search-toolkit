@@ -243,10 +243,21 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
       company.url = url;
       company.tags = tags;
     } else {
-      // Add new company: Initialize with null tracking metadata (set on first interaction)
-      // and an empty updates array (JST-62 model). Legacy company-level status/usefulInfo/role
-      // fields are no longer part of new companies — that data now lives on update cards.
-      companies.push({ name, location, url, tags, lastClicked: null, lastUpdated: null, updates: [] });
+      // Add new company: Initialize with null tracking metadata (set on first interaction).
+      // Legacy company-level status/usefulInfo/role fields are no longer part of new companies
+      // — that data now lives on update cards (JST-64/65/67). JST-72: optionally seed one update
+      // card from the initial-update section. buildInitialUpdates returns [] unless the section
+      // is expanded with a status chosen, so an unused/collapsed section yields updates: [].
+      const initialDate = document.getElementById('initial-update-date').value;
+      const updates = buildInitialUpdates({
+        expanded: !document.getElementById('initial-update-fields').classList.contains('hidden'),
+        role: document.getElementById('initial-update-role').value.trim(),
+        status: document.getElementById('initial-update-status').value,
+        // YYYY-MM-DD → ISO at UTC midnight, matching submitUpdateForm; omitted lets the card default to now.
+        date: initialDate ? new Date(initialDate + 'T00:00:00.000Z').toISOString() : undefined,
+        notes: document.getElementById('initial-update-notes').value.trim()
+      });
+      companies.push({ name, location, url, tags, lastClicked: null, lastUpdated: null, updates });
     }
 
     saveCompanies(companies);
