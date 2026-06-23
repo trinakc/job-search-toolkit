@@ -28,7 +28,8 @@
   },
   "homepage": "https://github.com/trinakc/job-search-toolkit#readme",
   "overrides": {
-    "@babel/core": "^7.29.6"
+    "@babel/core": "^7.29.6",
+    "js-yaml": "^4.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
