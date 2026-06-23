@@ -55,6 +55,7 @@ test('sort and filter controls exist with the expected options', async ({ page }
   await expect(page.locator('#company-sort option[value="alpha-desc"]')).toHaveCount(1);
   await expect(page.locator('#company-sort option[value="date-asc"]')).toHaveCount(1);
   await expect(page.locator('#company-sort option[value="date-desc"]')).toHaveCount(1);
+  await expect(page.locator('#company-sort option[value="never-first"]')).toHaveCount(1);
 
   await expect(page.locator('#company-tag-filter')).toBeVisible();
   await expect(page.locator('#company-tag-filter option[value=""]')).toHaveCount(1);
@@ -115,6 +116,19 @@ test('last checked descending puts newest-checked first, nulls last', async ({ p
   expect(names[0]).toBe('Beta Ltd');    // checked today — newest
   expect(names[1]).toBe('Alpha Corp');  // checked OLD_DATE
   expect(names[2]).toBe('Gamma GmbH'); // null — always last
+});
+
+// ─── Test 4b: Never checked first promotes null-dated cards to the top ────────
+// Gamma was never checked (null), so it leads; Alpha and Beta follow A→Z.
+test('never checked first puts never-checked companies at the top, then A→Z', async ({ page }) => {
+  await seedAndLoad(page);
+
+  await page.selectOption('#company-sort', 'never-first');
+
+  const names = await getVisibleCompanyNames(page);
+  expect(names[0]).toBe('Gamma GmbH'); // never checked — promoted to top
+  expect(names[1]).toBe('Alpha Corp');  // dated, alphabetical
+  expect(names[2]).toBe('Beta Ltd');    // dated, alphabetical
 });
 
 // ─── Test 5: Tag filter shows only matching cards ─────────────────────────────
