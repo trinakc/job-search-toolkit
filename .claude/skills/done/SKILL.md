@@ -28,8 +28,11 @@ Run `git diff --cached` to review the staged changes, then propose a commit mess
 ```
 JST-{ID}: {imperative title summarising the change}
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
 ```
+
+Replace `<model>` with the specific model that assisted (e.g. the current Claude model and
+version), so attribution stays accurate over time — matching the trailer rule in `CLAUDE.md`.
 
 **Stop and wait for the user to approve or edit the message. Do not commit until they confirm.**
 

@@ -15,6 +15,9 @@ Entries are added manually after each working session, pulled from the Notion pr
 - JST-66: Activity summary generator
 - JST-67: Remove legacy 'Role applied for' field from company record
 
+### Defects fixed
+- JST-68: Company tracker: Update card notes field text not wrapping
+
 ## [2026-06-17]
 
 ### Enhancements

@@ -87,6 +87,30 @@ test('editing an update card updates its rendered values', async ({ page }) => {
   await expect(card.locator('.update-status-badge')).toHaveText('Interviewing');
 });
 
+test('long unbroken notes content wraps instead of overflowing horizontally (JST-68)', async ({ page }) => {
+  // A single very long URL with no spaces — the kind of content that previously overflowed
+  // the card horizontally instead of wrapping.
+  const longUrl = 'https://careers.example.com/jobs/engineering-manager?ref=' + 'a'.repeat(200) + '&utm_source=referral';
+
+  await seedAndOpenModal(page, [
+    { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: longUrl }
+  ]);
+
+  // Read-only state: the rendered notes paragraph must wrap within its bounds, so its content
+  // width (scrollWidth) should not exceed its visible width (clientWidth).
+  const notes = page.locator('.update-card-notes').first();
+  await expect(notes).toBeVisible();
+  const overflows = await notes.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(overflows).toBe(false);
+
+  // Both the read-only notes and the edit textarea should carry the wrap-breaking style.
+  await expect(notes).toHaveCSS('overflow-wrap', 'break-word');
+
+  // Edit state: the same long content in the textarea must also break rather than overflow.
+  await page.locator('.update-card .update-card-actions button', { hasText: 'Edit' }).first().click();
+  await expect(page.locator('#update-card-notes')).toHaveCSS('overflow-wrap', 'break-word');
+});
+
 test('deleting an update card removes it after confirmation', async ({ page }) => {
   await seedAndOpenModal(page, [
     { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'to be deleted' }
