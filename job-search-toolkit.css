@@ -1012,6 +1012,56 @@ textarea:focus {
   color: var(--text);
 }
 
+/* Inline remove confirmation (JST-75): replaces the Edit/Remove buttons on a card while a
+   deletion is awaiting confirmation. Laid out as a wrapping flex row so the prompt and its
+   two buttons sit neatly in the same space the buttons normally occupy. */
+.remove-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.remove-confirm-text {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text2);
+}
+
+/* "Yes, remove" is the destructive action — styled with the existing --warn token so the
+   consequence reads clearly, while matching the size/shape of the other card buttons. */
+.remove-confirm-yes {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 4px 10px;
+  border: 1px solid var(--warn);
+  border-radius: 5px;
+  background: none;
+  color: var(--warn);
+  cursor: pointer;
+}
+
+.remove-confirm-yes:hover {
+  background: var(--warn-light);
+}
+
+/* "Cancel" is the safe default — muted styling consistent with .edit-btn. */
+.remove-confirm-cancel {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.remove-confirm-cancel:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
 .company-last-clicked {
   font-size: 11px;
   color: var(--text3);

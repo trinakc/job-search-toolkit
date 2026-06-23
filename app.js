@@ -911,9 +911,36 @@ function closeModal() {
   resetInitialUpdateForm();
 }
 
+// pendingCompanyRemoval — the name of the company whose card is currently showing the inline
+// "Remove this company?" confirmation (JST-75). Transient UI state only — never persisted to
+// localStorage. null means no card is awaiting confirmation. renderCompanies() in app-dom.js
+// reads this to decide which card renders its confirm controls instead of the Edit/Remove buttons.
+let pendingCompanyRemoval = null;
+
+// requestRemoveCompany — first step of a two-step delete. Marks the named company's card as
+// awaiting confirmation and re-renders so that card swaps its buttons for the inline confirm
+// controls. Deletes nothing.
+// @param {string} name — the company name from the clicked card
+function requestRemoveCompany(name) {
+  pendingCompanyRemoval = name;
+  renderCompanies();
+}
+
+// cancelRemoveCompany — aborts a pending delete, clearing the confirmation state and re-rendering
+// so the card's normal Edit/Remove buttons return. The company and all its data stay intact.
+function cancelRemoveCompany() {
+  pendingCompanyRemoval = null;
+  renderCompanies();
+}
+
+// removeCompany — permanently deletes the named company from state/localStorage and re-renders.
+// Confirmation is handled separately via requestRemoveCompany/cancelRemoveCompany (JST-75); the
+// pending flag is cleared here so a subsequent render doesn't leave a stale confirm state.
+// @param {string} name — the company name to delete
 function removeCompany(name) {
   const companies = getCompanies().filter(c => c.name !== name);
   saveCompanies(companies);
+  pendingCompanyRemoval = null;
   renderCompanies();
 }
 
@@ -1636,6 +1663,7 @@ if (typeof module !== 'undefined') {
     saveSeen,
     getCompanies,
     saveCompanies,
+    removeCompany,              // Exported for unit testing company deletion logic (JST-75)
     sortCompanies,
     filterCompanies,
     updateStatus,

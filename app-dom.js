@@ -149,8 +149,18 @@ function renderCompanies() {
           <!-- "Show more info" expander removed (JST-67): its only field was the company-level role,
                which now lives on update cards. Status is derived (JST-64) and useful-info was migrated
                into cards (JST-65), so all company detail is now edited via the modal's update log. -->
-          <button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
-          <button class="remove-btn" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>
+          ${pendingCompanyRemoval === company.name
+            // Inline confirmation (JST-75): clicking Remove swaps the card's buttons for this
+            // two-step prompt instead of deleting immediately. "Yes, remove" performs the actual
+            // deletion; "Cancel" aborts and restores the normal buttons, leaving all data intact.
+            ? `<div class="remove-confirm">
+                 <span class="remove-confirm-text">Remove this company?</span>
+                 <button class="remove-confirm-yes" onclick="removeCompany('${company.name.replace(/'/g, "\\'")}')">Yes, remove</button>
+                 <button class="remove-confirm-cancel" onclick="cancelRemoveCompany()">Cancel</button>
+               </div>`
+            // Default state: Remove calls requestRemoveCompany so a confirmation is shown first.
+            : `<button class="edit-btn" onclick="openEditCompanyModal(${index})">Edit</button>
+               <button class="remove-btn" onclick="requestRemoveCompany('${company.name.replace(/'/g, "\\'")}')">Remove</button>`}
         </div>
       `;
   }).join('');

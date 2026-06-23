@@ -13,6 +13,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 
 ### Enhancements
 - JST-72: Company tracker: Allow adding an initial update card when creating a company
+- JST-75: Company tracker: Confirm before removing a company card
 
 ## [2026-06-19]
 

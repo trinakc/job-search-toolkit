@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary, buildInitialUpdates } = require('./app');
+const { getTracker, getSeen, getCompanies, removeCompany, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary, buildInitialUpdates } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -67,6 +67,51 @@ describe('getSeen', () => {
     
     // getSeen() should find and return that array
     expect(getSeen()).toEqual(['id1', 'id2']);
+  });
+});
+
+describe('removeCompany', () => {
+  // removeCompany deletes a company by name and then re-renders the grid via renderCompanies(),
+  // which lives in app-dom.js and is not loaded in the Jest (no-DOM) environment. We stub it so
+  // these tests exercise the pure state/localStorage deletion logic in isolation. The inline
+  // confirmation flow (JST-75) is DOM behaviour and is covered by Playwright, not here.
+  beforeEach(() => {
+    global.renderCompanies = () => {};
+    // DEFAULT_COMPANIES is set empty so getCompanies() never seeds config defaults over our fixture.
+    global.API_CONFIG = { REED_API_KEY: 'test-reed-api-key', DEFAULT_COMPANIES: [] };
+    // Under jsdom the shared localStorage mock isn't truly reset between tests, so clear the
+    // companies key explicitly for a clean start (same defensive pattern used in getCompanies tests).
+    localStorage.removeItem('jst_companies_v1');
+  });
+
+  // Clear the companies key after each test so the data we save here doesn't leak into later
+  // describes (e.g. getCompanies) that assume an empty company list.
+  afterEach(() => {
+    localStorage.removeItem('jst_companies_v1');
+  });
+
+  test('removes the named company from localStorage and leaves the others intact', () => {
+    const stored = [
+      { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.com', tags: [], updates: [] },
+      { name: 'Beta Ltd', location: 'Cork', url: 'https://beta.com', tags: [], updates: [] }
+    ];
+    localStorage.setItem('jst_companies_v1', JSON.stringify(stored));
+
+    removeCompany('Alpha Corp');
+
+    // Only the company matching the passed name should be gone; the rest persist.
+    expect(getCompanies().map(c => c.name)).toEqual(['Beta Ltd']);
+  });
+
+  test('leaves all companies intact when the name matches none', () => {
+    const stored = [
+      { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.com', tags: [], updates: [] }
+    ];
+    localStorage.setItem('jst_companies_v1', JSON.stringify(stored));
+
+    removeCompany('Nonexistent Co');
+
+    expect(getCompanies().map(c => c.name)).toEqual(['Alpha Corp']);
   });
 });
 
