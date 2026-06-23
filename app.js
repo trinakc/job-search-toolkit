@@ -770,10 +770,13 @@ function showImportFeedback(result) {
 //   'alpha-desc' — Z→A by name
 //   'date-asc'   — oldest lastClicked first; nulls go to the bottom
 //   'date-desc'  — newest lastClicked first; nulls go to the bottom
+//   'never-first'— never-checked (null) companies first, then the rest A→Z by name
 //
 // Null lastClicked means the company has never been visited. It is deliberately
 // placed at the bottom of date sorts (not the top) so "never checked" entries
-// don't crowd out entries with real dates in either direction.
+// don't crowd out entries with real dates in either direction. The dedicated
+// 'never-first' option inverts this, surfacing those entries at the top so they
+// can be actioned.
 function sortCompanies(companies, sortKey = 'alpha-asc') {
   // Spread to avoid mutating the caller's array
   const sorted = [...companies];
@@ -785,6 +788,17 @@ function sortCompanies(companies, sortKey = 'alpha-asc') {
 
     if (sortKey === 'alpha-desc') {
       return b.name.localeCompare(a.name);
+    }
+
+    if (sortKey === 'never-first') {
+      const aNull = a.lastClicked === null || a.lastClicked === undefined;
+      const bNull = b.lastClicked === null || b.lastClicked === undefined;
+
+      // Never-checked companies float to the top; everything else keeps the
+      // default A→Z order. Within each group we fall through to name ordering.
+      if (aNull && !bNull) return -1;
+      if (!aNull && bNull) return 1;
+      return a.name.localeCompare(b.name);
     }
 
     if (sortKey === 'date-asc' || sortKey === 'date-desc') {

@@ -760,6 +760,36 @@ describe('sortCompanies', () => {
     expect(result[result.length - 1].name).toBe('Gamma GmbH');
   });
 
+  // ── Never checked first ───────────────────────────────────────────────────────
+  // 'never-first' surfaces never-checked companies (null lastClicked) at the TOP,
+  // the opposite of the date sorts. Dated companies follow in the default A→Z order.
+
+  test('never-first puts never-checked companies at the top', () => {
+    // Gamma (lastClicked: null) has never been checked, so it should lead the list.
+    const result = sortCompanies([ALPHA, BETA, GAMMA], 'never-first');
+    expect(result[0].name).toBe('Gamma GmbH');
+  });
+
+  test('never-first orders dated companies A→Z below the never-checked ones', () => {
+    // Gamma (null) floats to the top; Alpha and Beta follow in alphabetical order.
+    const result = sortCompanies([ALPHA, BETA, GAMMA], 'never-first');
+    expect(result.map(c => c.name)).toEqual(['Gamma GmbH', 'Alpha Corp', 'Beta Ltd']);
+  });
+
+  test('never-first with multiple never-checked companies orders them A→Z at the top', () => {
+    // Two never-checked companies (Delta, Gamma) should both lead, alphabetised
+    // among themselves, ahead of the single dated company (Alpha).
+    const DELTA = { name: 'Delta SA', tags: [], lastClicked: null };
+    const result = sortCompanies([ALPHA, GAMMA, DELTA], 'never-first');
+    expect(result.map(c => c.name)).toEqual(['Delta SA', 'Gamma GmbH', 'Alpha Corp']);
+  });
+
+  test('never-first with all companies dated renders normal A→Z with none promoted', () => {
+    // No never-checked companies, so the result is simply alphabetical A→Z.
+    const result = sortCompanies([BETA, ALPHA], 'never-first');
+    expect(result.map(c => c.name)).toEqual(['Alpha Corp', 'Beta Ltd']);
+  });
+
   test('does not mutate the original array', () => {
     // sortCompanies must return a new array — mutating the input would cause
     // unexpected side effects in the UI (e.g. re-renders showing wrong order).
