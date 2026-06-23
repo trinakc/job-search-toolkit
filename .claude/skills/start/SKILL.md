@@ -71,7 +71,13 @@ On success, confirm:
 
 ---
 
-## Step 5 — Enter plan mode
+## Step 5 — Check branch and working tree
+
+Stash any dirty tree, git checkout main && git pull, then git checkout -b <type>/JST-xx.
+
+---
+
+## Step 6 — Enter plan mode
 
 Call `EnterPlanMode`. From here, the `/vertical-slice` workflow takes over to
 explore affected layers, map dependencies, and write a plan for approval.
