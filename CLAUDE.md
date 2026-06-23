@@ -26,8 +26,10 @@ Always read the relevant existing files before starting. Understand the current 
 Do not guess at structure. Read first.
 
 ## Git Branching
+- Before editing any file for a ticket, verify the branch: run git branch --show-current. 
+- If the branch is main or any branch not created for this ticket, run git checkout main && git pull origin main && git checkout -b <type>/JST-xx-... first. 
+- If the tree is dirty, git stash -u before switching and git stash pop after.
 - Always branch from `main`, never from another feature or bugfix branch
-- Before creating a new branch, run `git checkout main && git pull origin main`
 - Never base work on the current active branch without explicit instruction
 
 ## Workflow skills
