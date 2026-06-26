@@ -7,7 +7,7 @@ global.API_CONFIG = {
   REED_API_KEY: 'test-reed-api-key'  // Placeholder — individual tests override this as needed
 };
 
-const { getTracker, getSeen, getCompanies, removeCompany, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary, buildInitialUpdates } = require('./app');
+const { getTracker, getSeen, getCompanies, removeCompany, updateStatus, updateNote, isFeatureEnabled, getDefaultTab, FEATURES, fetchReedJobs, getSearchTitles, getSearchTitleCount, parseCSVToCompanies, parseJSONToCompanies, companiesToCSV, companiesToJSON, mergeImportedCompanies, UPDATE_STATUSES, isValidUpdateStatus, createUpdateCard, validateUpdateCard, normalizeCompany, addUpdateCard, editUpdateCard, deleteUpdateCard, escapeHtml, getLatestUpdateCard, deriveCompanyStatus, countAdditionalUpdates, getUpdatesNewestFirst, migrateCompanies, runCompanyMigration, filterUpdatesInRange, buildActivitySummary, buildInitialUpdates } = require('./app');
 
 // beforeEach runs before every single test in this file.
 // Jest runs in Node.js which has no browser APIs — localStorage doesn't exist by default.
@@ -528,6 +528,77 @@ describe('deriveCompanyStatus', () => {
       { role: 'EM', status: 'Interviewing', date: '2026-06-12T00:00:00.000Z', notes: '' }
     ] };
     expect(deriveCompanyStatus(company)).toBe('Offer');
+  });
+});
+
+// ─── Update-card count + expand (JST-81) ────────────────────────────────────────
+// The company summary card shows a "+ N more" indicator and an expand toggle only when a
+// company has more than one update card. countAdditionalUpdates supplies N (the count beyond
+// the most recent card) and decides whether the toggle renders at all; getUpdatesNewestFirst
+// orders the cards for the expanded inline view, newest first.
+
+describe('countAdditionalUpdates', () => {
+  test('returns 0 when the company has no update cards (no indicator shown)', () => {
+    expect(countAdditionalUpdates({ name: 'Acme', updates: [] })).toBe(0);
+  });
+
+  test('returns 0 when updates is missing entirely', () => {
+    expect(countAdditionalUpdates({ name: 'Acme' })).toBe(0);
+  });
+
+  test('returns 0 for a single update card — single-update companies are unchanged', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' }
+    ] };
+    expect(countAdditionalUpdates(company)).toBe(0);
+  });
+
+  test('returns the count beyond the most recent card (3 cards → 2 more)', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Considering', date: '2026-06-08T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Interviewing', date: '2026-06-14T00:00:00.000Z', notes: '' }
+    ] };
+    expect(countAdditionalUpdates(company)).toBe(2);
+  });
+});
+
+describe('getUpdatesNewestFirst', () => {
+  test('returns an empty array when there are no update cards', () => {
+    expect(getUpdatesNewestFirst({ name: 'Acme', updates: [] })).toEqual([]);
+  });
+
+  test('returns an empty array when updates is missing entirely', () => {
+    expect(getUpdatesNewestFirst({ name: 'Acme' })).toEqual([]);
+  });
+
+  test('orders cards newest first regardless of stored order', () => {
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'mid' },
+      { role: 'EM', status: 'Interviewing', date: '2026-06-14T00:00:00.000Z', notes: 'new' },
+      { role: 'EM', status: 'Considering', date: '2026-06-08T00:00:00.000Z', notes: 'old' }
+    ] };
+    expect(getUpdatesNewestFirst(company).map(c => c.notes)).toEqual(['new', 'mid', 'old']);
+  });
+
+  test('on a date tie, the later-added card (higher index) comes first', () => {
+    // Mirrors getLatestUpdateCard: same date → the card added later is treated as more current.
+    const company = { name: 'Acme', updates: [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'first' },
+      { role: 'EM', status: 'Offer', date: '2026-06-10T00:00:00.000Z', notes: 'second' }
+    ] };
+    expect(getUpdatesNewestFirst(company).map(c => c.notes)).toEqual(['second', 'first']);
+  });
+
+  test('does not mutate the original updates array', () => {
+    const updates = [
+      { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: 'a' },
+      { role: 'EM', status: 'Interviewing', date: '2026-06-14T00:00:00.000Z', notes: 'b' }
+    ];
+    const company = { name: 'Acme', updates };
+    getUpdatesNewestFirst(company);
+    // Original order is untouched — the helper sorts a copy.
+    expect(updates.map(c => c.notes)).toEqual(['a', 'b']);
   });
 });
 

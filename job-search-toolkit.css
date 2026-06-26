@@ -1079,6 +1079,40 @@ textarea:focus {
   display: inline-block;
 }
 
+/* ─── Company-card update count + expand (JST-81) ────────────────────────────────
+   On cards with more than one update card, a "+ N more" toggle expands the full log
+   inline. The toggle matches the small mono button style used elsewhere (.add-update-btn). */
+.company-update-toggle {
+  display: inline-block;
+  margin-top: 6px;
+  margin-left: 8px;
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 2px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+}
+
+/* Expanded inline list of read-only update cards, stacked newest first. */
+.company-updates-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* A single read-only update card shown inline on the company summary card. Mirrors the
+   modal's .update-card box but without the Edit/Delete actions. */
+.company-update-card {
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+
 .status-not-applied {
   background: var(--surface2);
   color: var(--text3);
