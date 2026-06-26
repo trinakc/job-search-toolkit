@@ -348,3 +348,20 @@ test('matching update cards are highlighted in the expanded view', async ({ page
   await expect(matched).toContainText('Applied');
   await expect(page.locator('.company-update-card:not(.is-match)')).toContainText('Rejected');
 });
+
+test('no update card is highlighted when no status filter is active', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Deliberately do NOT call selectStatuses — the whole point is an inactive filter.
+  // Beta Ltd has two update cards (Applied + Rejected), so it carries a "+ 1 more"
+  // expand toggle even with no filter applied. Scope to Beta's card so the toggle
+  // and card assertions can't pick up another company.
+  const beta = page.locator('.company-card', { hasText: 'Beta Ltd' });
+  await beta.locator('.company-update-toggle').click();
+
+  // Both cards render, but with no active filter none should carry the highlight.
+  // This guards AC2 / the JST-82 DoD: the expanded view is unchanged when nothing
+  // is filtered (statuses.includes() in app-dom.js is always false on an empty filter).
+  await expect(beta.locator('.company-update-card')).toHaveCount(2);
+  await expect(beta.locator('.company-update-card.is-match')).toHaveCount(0);
+});

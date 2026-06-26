@@ -14,6 +14,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 ### Enhancements
 - JST-80: Company tracker: Filter by update card status
 - JST-81: Show update card count and expand to see all on company cards
+- JST-82: Company cards: Highlight update cards matching the active status filter in the expanded view
 
 ## [2026-06-23]
 
