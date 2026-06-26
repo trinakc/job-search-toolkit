@@ -940,6 +940,87 @@ describe('filterCompanies', () => {
     const sorted   = sortCompanies(filtered, 'alpha-desc');
     expect(sorted.map(c => c.name)).toEqual(['Beta Ltd', 'Alpha Corp']);
   });
+
+  // ── By update-card status (JST-80) ──────────────────────────────────────────
+  // The status filter matches across ALL of a company's update cards, not just the
+  // derived (latest) status. A company is kept if ANY of its update cards has a
+  // status in the selected `statuses` array. This is what lets a user surface, for
+  // example, every company they ever applied to even where a newer card supersedes it.
+
+  // Fixtures carrying update cards. APPLIED_THEN_REJECTED is the key case: its most
+  // recent card is 'Rejected', but it still has an older 'Applied' card, so a filter
+  // for 'Applied' must include it even though its derived status is 'Rejected'.
+  const APPLIED_THEN_REJECTED = {
+    name: 'Applied Co', tags: ['EM'], lastClicked: OLD_DATE,
+    updates: [
+      { role: 'EM', status: 'Applied',  date: '2026-01-10T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Rejected', date: '2026-02-10T00:00:00.000Z', notes: '' }
+    ]
+  };
+  const INTERVIEWING_CO = {
+    name: 'Interview Co', tags: [], lastClicked: null,
+    updates: [{ role: 'Lead', status: 'Interviewing', date: '2026-03-01T00:00:00.000Z', notes: '' }]
+  };
+  const CONSIDERING_CO = {
+    name: 'Considering Co', tags: [], lastClicked: null,
+    updates: [{ role: 'IC', status: 'Considering', date: '2026-03-05T00:00:00.000Z', notes: '' }]
+  };
+  // No update cards at all — must be excluded whenever any status is selected.
+  const NO_UPDATES_CO = { name: 'Empty Co', tags: [], lastClicked: null, updates: [] };
+
+  test('no statuses selected returns all companies unchanged', () => {
+    // An empty statuses array means "no status filtering" — same as omitting it.
+    const all = [APPLIED_THEN_REJECTED, INTERVIEWING_CO, CONSIDERING_CO, NO_UPDATES_CO];
+    expect(filterCompanies(all, { statuses: [] }).map(c => c.name))
+      .toEqual(all.map(c => c.name));
+  });
+
+  test('omitting statuses entirely leaves companies with update cards untouched', () => {
+    // Companies that carry update cards must not be dropped just because no status
+    // filter was supplied — the status branch only runs when statuses is non-empty.
+    const result = filterCompanies([APPLIED_THEN_REJECTED, INTERVIEWING_CO], {});
+    expect(result.map(c => c.name)).toEqual(['Applied Co', 'Interview Co']);
+  });
+
+  test('filtering by a status matches a non-latest card (derived status differs)', () => {
+    // Applied Co's latest card is 'Rejected', but it has an older 'Applied' card.
+    // Filtering by 'Applied' must still include it — this is the core requirement.
+    const result = filterCompanies([APPLIED_THEN_REJECTED, INTERVIEWING_CO], { statuses: ['Applied'] });
+    expect(result.map(c => c.name)).toEqual(['Applied Co']);
+  });
+
+  test('filtering by multiple statuses returns the union of matching companies', () => {
+    // 'Applied' OR 'Interviewing' should surface both the company with an Applied
+    // card and the company with an Interviewing card, but not the Considering-only one.
+    const result = filterCompanies(
+      [APPLIED_THEN_REJECTED, INTERVIEWING_CO, CONSIDERING_CO],
+      { statuses: ['Applied', 'Interviewing'] }
+    );
+    expect(result.map(c => c.name)).toEqual(['Applied Co', 'Interview Co']);
+  });
+
+  test('a company with no update cards is excluded when a status is selected', () => {
+    // Empty Co has updates: [] so it can never match a status filter.
+    const result = filterCompanies([INTERVIEWING_CO, NO_UPDATES_CO], { statuses: ['Interviewing'] });
+    expect(result.map(c => c.name)).toEqual(['Interview Co']);
+  });
+
+  test('status filter composes with tag and date filters together', () => {
+    // Applied Co (tag 'EM', checked OLD_DATE, has an Applied card) should pass all three.
+    // Interview Co has no 'EM' tag, so the tag filter removes it before status is checked.
+    const result = filterCompanies(
+      [APPLIED_THEN_REJECTED, INTERVIEWING_CO],
+      { tag: 'EM', daysAgo: 7, statuses: ['Applied'] }
+    );
+    expect(result.map(c => c.name)).toEqual(['Applied Co']);
+  });
+
+  test('status filter does not mutate the input array', () => {
+    // Like the other filters, this must return a new array and leave the caller's intact.
+    const input = [APPLIED_THEN_REJECTED, CONSIDERING_CO];
+    filterCompanies(input, { statuses: ['Applied'] });
+    expect(input.map(c => c.name)).toEqual(['Applied Co', 'Considering Co']);
+  });
 });
 
 // ─── fetchReedJobs tests ──────────────────────────────────────────────────────

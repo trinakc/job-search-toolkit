@@ -869,11 +869,13 @@ function sortCompanies(companies, sortKey = 'alpha-asc') {
 //              (case-insensitive match)
 //   daysAgo — only include companies whose lastClicked is older than N days ago,
 //              OR whose lastClicked is null (never checked = most stale)
+//   statuses — array of update-card statuses; only include companies that have at
+//              least one update card whose status is in this array (JST-80)
 //
-// Both filters are optional. If neither is provided the full list is returned.
+// All filters are optional. If none is provided the full list is returned.
 // Filters compose: pass the result of filterCompanies into sortCompanies to
 // get a filtered + sorted set.
-function filterCompanies(companies, { tag, daysAgo } = {}) {
+function filterCompanies(companies, { tag, daysAgo, statuses } = {}) {
   let result = companies;
 
   if (tag) {
@@ -896,7 +898,35 @@ function filterCompanies(companies, { tag, daysAgo } = {}) {
     });
   }
 
+  if (Array.isArray(statuses) && statuses.length) {
+    // JST-80: keep a company if ANY of its update cards matches a selected status.
+    // This intentionally matches across ALL cards, not just the derived/latest one
+    // (deriveCompanyStatus), so e.g. an "Applied" card still surfaces a company whose
+    // most recent card is "Rejected". An empty/omitted statuses array skips this block,
+    // leaving the list unfiltered. Companies with no updates array can never match.
+    result = result.filter(c => (c.updates || []).some(u => statuses.includes(u.status)));
+  }
+
   return result;
+}
+
+// ─── toggleStatusFilterMenu ───────────────────────────────────────────────────
+// Opens/closes the JST-80 status-filter popover. The trigger is a <button> with
+// aria-expanded so screen readers announce the open/closed state; the popover is a
+// plain element hidden via the `hidden` attribute. Pure DOM toggle — the actual
+// filtering happens in renderCompanies() when a checkbox inside the menu changes.
+// Covered by Playwright (DOM behaviour), not Jest.
+function toggleStatusFilterMenu() {
+  const menu = document.getElementById('company-status-menu');
+  const toggle = document.getElementById('company-status-toggle');
+  if (!menu || !toggle) return;
+  const willOpen = menu.hasAttribute('hidden');
+  if (willOpen) {
+    menu.removeAttribute('hidden');
+  } else {
+    menu.setAttribute('hidden', '');
+  }
+  toggle.setAttribute('aria-expanded', String(willOpen));
 }
 
 function openAddCompanyModal() {

@@ -82,7 +82,24 @@ function resetCompanyControls() {
   if (sort)       sort.value       = 'alpha-asc';
   if (tagFilter)  tagFilter.value  = '';
   if (dateFilter) dateFilter.value = '';
+  // JST-80: clear the status filter — uncheck every box and close the popover.
+  document.querySelectorAll('#company-status-menu input[type="checkbox"]')
+    .forEach(cb => { cb.checked = false; });
+  const statusMenu   = document.getElementById('company-status-menu');
+  const statusToggle = document.getElementById('company-status-toggle');
+  if (statusMenu)   statusMenu.setAttribute('hidden', '');
+  if (statusToggle) statusToggle.setAttribute('aria-expanded', 'false');
   renderCompanies();
+}
+
+// ─── getSelectedStatuses ──────────────────────────────────────────────────────
+// Reads the checked statuses from the JST-80 status-filter popover. Returns an array
+// of status strings (empty when nothing is checked). Kept small so renderCompanies()
+// can both feed it to filterCompanies() and reuse it to highlight matching cards.
+function getSelectedStatuses() {
+  return Array.from(
+    document.querySelectorAll('#company-status-menu input[type="checkbox"]:checked')
+  ).map(cb => cb.value);
 }
 
 // ─── renderCompanies ──────────────────────────────────────────────────────────
@@ -94,11 +111,21 @@ function renderCompanies() {
   const sortKey    = (document.getElementById('company-sort')        || {}).value || 'alpha-asc';
   const tagFilter  = (document.getElementById('company-tag-filter')  || {}).value || '';
   const daysAgo    = (document.getElementById('company-date-filter') || {}).value || '';
+  // JST-80: statuses checked in the status-filter popover. Empty = no status filtering.
+  const statuses   = getSelectedStatuses();
+
+  // Reflect the active selection on the toggle button so the closed popover still
+  // communicates state: "All statuses" when none, otherwise "N selected".
+  const statusToggle = document.getElementById('company-status-toggle');
+  if (statusToggle) {
+    statusToggle.textContent = statuses.length ? `${statuses.length} selected ▾` : 'All statuses ▾';
+  }
 
   // Build the display list: filter first, then sort the filtered set
   const filtered = filterCompanies(getCompanies(), {
-    tag:     tagFilter  || undefined,
-    daysAgo: daysAgo    ? parseInt(daysAgo, 10) : undefined,
+    tag:      tagFilter || undefined,
+    daysAgo:  daysAgo   ? parseInt(daysAgo, 10) : undefined,
+    statuses: statuses.length ? statuses : undefined,
   });
   const companies = sortCompanies(filtered, sortKey);
 
@@ -171,8 +198,12 @@ function renderCompanies() {
               const dateLabel = card.date
                 ? new Date(card.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
                 : '';
+              // JST-80 (minimal match cue): when a status filter is active, flag the cards
+              // that actually matched it so the user can see why this company surfaced —
+              // useful when the derived/collapsed badge isn't itself one of the picked statuses.
+              const matchClass = statuses.includes(card.status) ? ' is-match' : '';
               return `
-              <div class="company-update-card">
+              <div class="company-update-card${matchClass}">
                 <div class="update-card-header">
                   <span class="update-status-badge ${statusClass}">${escapeHtml(card.status)}</span>
                   ${card.role ? `<span class="update-card-role">${escapeHtml(card.role)}</span>` : ''}
@@ -320,6 +351,24 @@ if (typeof window !== 'undefined' && document.getElementById('add-company-form')
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('add-company-modal').classList.contains('active')) closeModal();
+  });
+
+  // JST-80: dismiss the open status-filter popover. Helper closes the menu and resets
+  // the toggle's aria-expanded; we wire it to outside-clicks and the Escape key so the
+  // popover behaves like a standard dropdown. Clicks inside #company-status-filter
+  // (the toggle and the checkboxes) are ignored so selecting options keeps it open.
+  const closeStatusFilterMenu = () => {
+    const menu = document.getElementById('company-status-menu');
+    const toggle = document.getElementById('company-status-toggle');
+    if (menu && !menu.hasAttribute('hidden')) menu.setAttribute('hidden', '');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  };
+  document.addEventListener('click', (e) => {
+    const filter = document.getElementById('company-status-filter');
+    if (filter && !filter.contains(e.target)) closeStatusFilterMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeStatusFilterMenu();
   });
 
   // Activity summary (JST-66): default the range to the last 7 days so the panel is usable
