@@ -1,10 +1,10 @@
-// Playwright tests for the company-card update count + expand/collapse (JST-81).
+// Playwright tests for the company-card update expand/collapse (JST-81, redesigned in JST-83).
 //
-// A company summary card normally shows only its most recent update's status. When a company
-// has more than one update card, a "+ N more" indicator and an expand toggle appear; expanding
-// shows every update card inline (read-only) without opening the modal. Single-update companies
-// are unaffected. The pure count/ordering logic is unit-tested in app.test.js; these tests cover
-// the rendered UI and the toggle interaction (including keyboard).
+// Every company card with updates shows a compact "{role} {status}" summary pill per update and a
+// "See all updates" toggle; expanding swaps the pills for the full update cards inline (read-only)
+// without opening the modal, and the toggle becomes "Show less". The pure count/ordering logic is
+// unit-tested in app.test.js; these tests cover the rendered UI and the toggle interaction
+// (including keyboard).
 
 const { test, expect } = require('@playwright/test');
 
@@ -46,7 +46,7 @@ const THREE_UPDATES = [
   { role: 'EM', status: 'Considering', date: '2026-06-08T00:00:00.000Z', notes: 'spotted role' }
 ];
 
-test('a company with a single update card shows no count indicator or toggle', async ({ page }) => {
+test('a single-update card also shows a See all updates toggle (JST-83)', async ({ page }) => {
   await seedAndLoad(page, [
     company('Solo Ltd', [
       { role: 'EM', status: 'Applied', date: '2026-06-10T00:00:00.000Z', notes: '' }
@@ -54,20 +54,22 @@ test('a company with a single update card shows no count indicator or toggle', a
   ]);
 
   const solo = card(page, 'Solo Ltd');
-  await expect(solo.locator('.company-status')).toHaveText('Applied');
-  await expect(solo.locator('.company-update-toggle')).toHaveCount(0);
+  // One summary pill, and the toggle is present even with a single update so the detail is reachable.
+  await expect(solo.locator('.company-update-summary')).toHaveCount(1);
+  await expect(solo.locator('.company-update-toggle')).toHaveText('See all updates');
 });
 
-test('a company with three update cards shows the latest status and a "+ 2 more" toggle', async ({ page }) => {
+test('a company with three update cards shows three summary pills and a See all updates toggle', async ({ page }) => {
   await seedAndLoad(page, [company('Acme Corp', THREE_UPDATES)]);
 
   const acme = card(page, 'Acme Corp');
-  // Collapsed: most recent status badge plus the count toggle.
-  await expect(acme.locator('.company-status')).toHaveText('Interviewing');
+  // Collapsed: one pill per update (no derived status badge) plus the toggle.
+  await expect(acme.locator('.company-update-summary')).toHaveCount(3);
+  await expect(acme.locator('.company-status')).toHaveCount(0);
   const toggle = acme.locator('.company-update-toggle');
-  await expect(toggle).toHaveText('+ 2 more');
+  await expect(toggle).toHaveText('See all updates');
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  // Not expanded yet — no inline list.
+  // Not expanded yet — no inline detail list.
   await expect(acme.locator('.company-updates-expanded')).toHaveCount(0);
 });
 
@@ -91,7 +93,7 @@ test('clicking the toggle expands all update cards inline without opening the mo
   await expect(page.locator('#add-company-modal')).toBeHidden();
 });
 
-test('collapsing returns the card to showing only the most recent update', async ({ page }) => {
+test('collapsing returns the card to the summary pills', async ({ page }) => {
   await seedAndLoad(page, [company('Acme Corp', THREE_UPDATES)]);
 
   const acme = card(page, 'Acme Corp');
@@ -102,8 +104,8 @@ test('collapsing returns the card to showing only the most recent update', async
 
   await acme.locator('.company-update-toggle').click(); // collapse
   await expect(acme.locator('.company-updates-expanded')).toHaveCount(0);
-  await expect(acme.locator('.company-status')).toHaveText('Interviewing');
-  await expect(acme.locator('.company-update-toggle')).toHaveText('+ 2 more');
+  await expect(acme.locator('.company-update-summary')).toHaveCount(3);
+  await expect(acme.locator('.company-update-toggle')).toHaveText('See all updates');
 });
 
 test('the toggle is keyboard operable', async ({ page }) => {
