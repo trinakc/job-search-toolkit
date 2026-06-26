@@ -235,6 +235,42 @@ function deriveCompanyStatus(company) {
   return latest ? latest.status : null;
 }
 
+// ─── Update-card count + expand (JST-81) ────────────────────────────────────────
+// A company summary card normally shows only its most recent update's status. When a company
+// has several update cards we surface a "+ N more" indicator and an expand toggle so the full
+// log can be viewed inline without opening the modal. These two pure helpers feed that UI;
+// the rendering and toggle state live in app-dom.js / below.
+
+// countAdditionalUpdates — how many update cards a company has beyond its most recent one.
+// Drives the "+ N more" label and whether the expand toggle renders at all: 0 means a single
+// (or no) update card, so the card stays unchanged with no indicator.
+// @param {Object} company
+// @returns {number} updates beyond the latest (0 when 0 or 1 update cards)
+function countAdditionalUpdates(company) {
+  const updates = (company && Array.isArray(company.updates)) ? company.updates : [];
+  return updates.length > 1 ? updates.length - 1 : 0;
+}
+
+// getUpdatesNewestFirst — a copy of the company's update cards ordered newest first, for the
+// expanded inline view. Sorting matches getLatestUpdateCard's tie-break: on an equal date the
+// later-added card (higher original index) ranks first, so the first element is always the same
+// card deriveCompanyStatus treats as current. Never mutates the input array.
+// @param {Object} company
+// @returns {Object[]} update cards, most recent first (empty array when there are none)
+function getUpdatesNewestFirst(company) {
+  const updates = (company && Array.isArray(company.updates)) ? company.updates : [];
+  // Pair each card with its original index so we can break date ties by insertion order.
+  return updates
+    .map((card, index) => ({ card, index }))
+    .sort((a, b) => {
+      const aTime = Date.parse(a.card.date) || 0;
+      const bTime = Date.parse(b.card.date) || 0;
+      // Newest date first; on a tie the higher original index (added later) wins.
+      return bTime - aTime || b.index - a.index;
+    })
+    .map(entry => entry.card);
+}
+
 // ─── Legacy data migration (JST-65) ────────────────────────────────────────────
 // One-time migration that folds each company's legacy `usefulInfo` + `status` fields into a
 // single update card, then removes both fields. Runs once on load (runCompanyMigration). The
@@ -923,6 +959,26 @@ function closeModal() {
   resetUpdateForm();
   // Collapse and clear the Add-mode initial-update section too (JST-72).
   resetInitialUpdateForm();
+}
+
+// expandedCompanies (JST-81) — the set of company names whose summary card is currently showing
+// its full update log inline (expanded). Transient UI state only — never persisted to localStorage.
+// Keyed by company name (the unique identifier used throughout). renderCompanies() reads this to
+// decide whether a card with multiple update cards shows the collapsed "+ N more" toggle or the
+// expanded list. A Set lets several cards be expanded independently and survive re-renders.
+const expandedCompanies = new Set();
+
+// toggleCompanyExpansion — flips a company card between collapsed and expanded, then re-renders.
+// First step is keyed by name so it stays correct across sort/filter changes (which reorder the
+// grid). Adds the name when collapsed, removes it when expanded.
+// @param {string} name — the company name from the clicked toggle
+function toggleCompanyExpansion(name) {
+  if (expandedCompanies.has(name)) {
+    expandedCompanies.delete(name);
+  } else {
+    expandedCompanies.add(name);
+  }
+  renderCompanies();
 }
 
 // pendingCompanyRemoval — the name of the company whose card is currently showing the inline
@@ -1705,6 +1761,8 @@ if (typeof module !== 'undefined') {
     escapeHtml,                 // Exported for unit testing HTML escaping
     getLatestUpdateCard,        // Exported for unit testing latest-card selection (JST-64)
     deriveCompanyStatus,        // Exported for unit testing derived company status
+    countAdditionalUpdates,     // Exported for unit testing the "+ N more" count (JST-81)
+    getUpdatesNewestFirst,      // Exported for unit testing newest-first ordering (JST-81)
     migrateCompanies,           // Exported for unit testing legacy-data migration (JST-65)
     runCompanyMigration,        // Exported for unit testing the on-load migration entry point
     filterUpdatesInRange,       // Exported for unit testing date-range filtering (JST-66)

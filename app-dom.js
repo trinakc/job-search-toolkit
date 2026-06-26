@@ -140,9 +140,48 @@ function renderCompanies() {
           ${(() => {
             // Status is derived from the most recent update card (JST-64). No updates → neutral state.
             const derived = deriveCompanyStatus(company);
-            return derived
-              ? `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>`
-              : `<div class="company-status status-not-applied">No updates</div>`;
+            const additional = countAdditionalUpdates(company);
+
+            // Single (or no) update card: unchanged behaviour — just the derived status badge (JST-81).
+            if (additional === 0) {
+              return derived
+                ? `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>`
+                : `<div class="company-status status-not-applied">No updates</div>`;
+            }
+
+            // More than one update card (JST-81): show a "+ N more" indicator and an expand toggle.
+            // The toggle is a real <button> with aria-expanded/aria-controls so it is keyboard
+            // accessible, mirroring toggleInitialUpdate(). State lives in expandedCompanies (app.js).
+            const isExpanded = expandedCompanies.has(company.name);
+            const listId = `company-updates-${index}`;
+            const safeName = company.name.replace(/'/g, "\\'");
+            const toggle = `<button type="button" class="company-update-toggle" aria-expanded="${isExpanded}" aria-controls="${listId}" onclick="toggleCompanyExpansion('${safeName}')">${isExpanded ? 'Show less' : `+ ${additional} more`}</button>`;
+
+            if (!isExpanded) {
+              // Collapsed: most-recent status badge (as normal) plus the toggle.
+              return `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>${toggle}`;
+            }
+
+            // Expanded: render every update card inline, newest first (getUpdatesNewestFirst). These
+            // are read-only — Edit/Delete live in the modal — so they omit the action buttons that
+            // renderUpdateCards() emits. Free-text fields are escaped; dates formatted in UTC to match
+            // how they are stored (ISO midnight UTC), consistent with renderUpdateCards().
+            const cards = getUpdatesNewestFirst(company).map((card) => {
+              const statusClass = `update-status-${card.status.toLowerCase()}`;
+              const dateLabel = card.date
+                ? new Date(card.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+                : '';
+              return `
+              <div class="company-update-card">
+                <div class="update-card-header">
+                  <span class="update-status-badge ${statusClass}">${escapeHtml(card.status)}</span>
+                  ${card.role ? `<span class="update-card-role">${escapeHtml(card.role)}</span>` : ''}
+                  <span class="update-card-date">${escapeHtml(dateLabel)}</span>
+                </div>
+                ${card.notes ? `<p class="update-card-notes">${escapeHtml(card.notes)}</p>` : ''}
+              </div>`;
+            }).join('');
+            return `<div id="${listId}" class="company-updates-expanded">${cards}</div>${toggle}`;
           })()}
           <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
           ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
