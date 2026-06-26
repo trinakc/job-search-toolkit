@@ -165,42 +165,26 @@ function renderCompanies() {
           <div class="company-meta">${company.location}</div>
           ${company.tags.length ? `<div class="tags">${company.tags.map(tag => tag === 'Strong fit' || tag === 'Cork-based' ? `<span class="tag green">${tag}</span>` : `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
           ${(() => {
-            // Status is derived from the most recent update card (JST-64). No updates → neutral state.
-            const derived = deriveCompanyStatus(company);
-            const additional = countAdditionalUpdates(company);
+            // Update cards drive everything shown here, newest first (JST-83 redesign). A company with
+            // no updates still shows the neutral "No updates" state; otherwise each update is summarised
+            // as a compact "{role} {status}" pill, with a toggle to reveal the full detail cards inline.
+            const updates = getUpdatesNewestFirst(company);
 
-            // Single (or no) update card: unchanged behaviour — just the derived status badge (JST-81).
-            if (additional === 0) {
-              return derived
-                ? `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>`
-                : `<div class="company-status status-not-applied">No updates</div>`;
+            // No update cards: neutral "No updates" badge, no pills.
+            if (updates.length === 0) {
+              return `<div class="company-status status-not-applied">No updates</div>`;
             }
 
-            // More than one update card (JST-81): show a "+ N more" indicator and an expand toggle.
-            // The toggle is a real <button> with aria-expanded/aria-controls so it is keyboard
-            // accessible, mirroring toggleInitialUpdate(). State lives in expandedCompanies (app.js).
-            const isExpanded = expandedCompanies.has(company.name);
-            const listId = `company-updates-${index}`;
-            const safeName = company.name.replace(/'/g, "\\'");
-            const toggle = `<button type="button" class="company-update-toggle" aria-expanded="${isExpanded}" aria-controls="${listId}" onclick="toggleCompanyExpansion('${safeName}')">${isExpanded ? 'Show less' : `+ ${additional} more`}</button>`;
-
-            if (!isExpanded) {
-              // Collapsed: most-recent status badge (as normal) plus the toggle.
-              return `<div class="company-status update-status-${derived.toLowerCase()}">${derived}</div>${toggle}`;
-            }
-
-            // Expanded: render every update card inline, newest first (getUpdatesNewestFirst). These
-            // are read-only — Edit/Delete live in the modal — so they omit the action buttons that
-            // renderUpdateCards() emits. Free-text fields are escaped; dates formatted in UTC to match
-            // how they are stored (ISO midnight UTC), consistent with renderUpdateCards().
-            const cards = getUpdatesNewestFirst(company).map((card) => {
+            // Renders one read-only inline detail card (role, status, date, notes), shown when the card
+            // is expanded. Edit/Delete live in the modal, so the action buttons renderUpdateCards() emits
+            // are omitted here. Free-text fields are escaped; dates formatted in UTC to match how they
+            // are stored (ISO midnight UTC), consistent with renderUpdateCards().
+            const renderInlineUpdateCard = (card) => {
               const statusClass = `update-status-${card.status.toLowerCase()}`;
               const dateLabel = card.date
                 ? new Date(card.date).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
                 : '';
-              // JST-80 (minimal match cue): when a status filter is active, flag the cards
-              // that actually matched it so the user can see why this company surfaced —
-              // useful when the derived/collapsed badge isn't itself one of the picked statuses.
+              // JST-80/82 (match cue): when a status filter is active, flag the cards that matched it.
               const matchClass = statuses.includes(card.status) ? ' is-match' : '';
               return `
               <div class="company-update-card${matchClass}">
@@ -211,9 +195,36 @@ function renderCompanies() {
                 </div>
                 ${card.notes ? `<p class="update-card-notes">${escapeHtml(card.notes)}</p>` : ''}
               </div>`;
+            };
+
+            // The expand/collapse toggle. State lives in expandedCompanies (app.js). It is a real
+            // <button> with aria-expanded/aria-controls so it is keyboard accessible, mirroring
+            // toggleInitialUpdate(). Shown on every card with updates — even a single one — so the
+            // full detail (date/notes) is always reachable inline without opening the modal.
+            const isExpanded = expandedCompanies.has(company.name);
+            const listId = `company-updates-${index}`;
+            const safeName = company.name.replace(/'/g, "\\'");
+            const toggle = `<button type="button" class="company-update-toggle" aria-expanded="${isExpanded}" aria-controls="${listId}" onclick="toggleCompanyExpansion('${safeName}')">${isExpanded ? 'Show less' : 'See all updates'}</button>`;
+
+            if (isExpanded) {
+              // Expanded: full detail cards inline, newest first. The pills are replaced (not duplicated).
+              const cards = updates.map(renderInlineUpdateCard).join('');
+              return `<div id="${listId}" class="company-updates-expanded">${cards}</div>${toggle}`;
+            }
+
+            // Collapsed: one compact "{role} {status}" pill per update, newest first. The status reads
+            // as a lowercase phrase ("Staff Officer applied"); when the role is blank we show the status
+            // alone. A status filter highlights matching pills (is-match), consistent with the detail cards.
+            const pills = updates.map((card) => {
+              const matchClass = statuses.includes(card.status) ? ' is-match' : '';
+              const label = card.role
+                ? `${escapeHtml(card.role)} ${escapeHtml(card.status.toLowerCase())}`
+                : escapeHtml(card.status);
+              return `<span class="company-update-summary${matchClass}">${label}</span>`;
             }).join('');
-            return `<div id="${listId}" class="company-updates-expanded">${cards}</div>${toggle}`;
+            return `<div id="${listId}" class="company-update-summaries">${pills}</div>${toggle}`;
           })()}
+          <div class="careers-label">Careers page</div>
           <a class="careers-link" onclick="trackCompanyClick('${company.name.replace(/'/g, "\\'")}', '${company.url}')" href="#">${company.url.replace('https://', '').split('/')[0]} →</a>
           ${company.lastClicked ? `<div class="company-last-clicked">Last visited: ${new Date(company.lastClicked).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
           <!-- "Show more info" expander removed (JST-67): its only field was the company-level role,

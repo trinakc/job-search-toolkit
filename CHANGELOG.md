@@ -15,6 +15,7 @@ Entries are added manually after each working session, pulled from the Notion pr
 - JST-80: Company tracker: Filter by update card status
 - JST-81: Show update card count and expand to see all on company cards
 - JST-82: Company cards: Highlight update cards matching the active status filter in the expanded view
+- JST-83: Company cards: Summarise each update as a role/status pill with "See all updates", and label the careers link
 
 ## [2026-06-23]
 

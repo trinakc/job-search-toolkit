@@ -339,7 +339,7 @@ test('matching update cards are highlighted in the expanded view', async ({ page
   await selectStatuses(page, ['Applied']);
   expect(await getVisibleCompanyNames(page)).toEqual(['Beta Ltd']);
 
-  // Expand Beta's update cards (it has a "+ 1 more" toggle because it has two cards).
+  // Expand Beta's update cards via its "See all updates" toggle (it has two cards).
   await page.locator('.company-update-toggle').click();
 
   // Exactly the Applied card should carry the .is-match highlight; the Rejected one must not.
@@ -353,7 +353,7 @@ test('no update card is highlighted when no status filter is active', async ({ p
   await seedAndLoad(page);
 
   // Deliberately do NOT call selectStatuses — the whole point is an inactive filter.
-  // Beta Ltd has two update cards (Applied + Rejected), so it carries a "+ 1 more"
+  // Beta Ltd has two update cards (Applied + Rejected), so it carries a "See all updates"
   // expand toggle even with no filter applied. Scope to Beta's card so the toggle
   // and card assertions can't pick up another company.
   const beta = page.locator('.company-card', { hasText: 'Beta Ltd' });

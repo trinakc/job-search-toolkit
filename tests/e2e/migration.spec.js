@@ -34,11 +34,12 @@ function statusBadge(page, name) {
   return page.locator('.company-card', { hasText: name }).locator('.company-status');
 }
 
-test('migration derives the badge from the migrated legacy status', async ({ page }) => {
+test('migration derives the status from the migrated legacy status', async ({ page }) => {
   await seedAndLoad(page, [legacyCompany('Acme Corp', 'applied', 'Met the hiring manager')]);
 
-  // Legacy 'applied' maps to the 'Applied' update status, which drives the derived badge.
-  await expect(statusBadge(page, 'Acme Corp')).toHaveText('Applied');
+  // Legacy 'applied' maps to the 'Applied' update status. Migration yields a single update card
+  // with no role, which JST-83 renders as a summary pill showing the status alone ("Applied").
+  await expect(page.locator('.company-card', { hasText: 'Acme Corp' }).locator('.company-update-summary')).toHaveText('Applied');
 });
 
 test('migration creates one update card carrying the old useful-info text as notes', async ({ page }) => {
