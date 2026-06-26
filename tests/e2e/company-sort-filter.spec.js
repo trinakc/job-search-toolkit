@@ -23,10 +23,20 @@ const TODAY = new Date().toISOString();
 const OLD_DATE = '2024-01-01T00:00:00.000Z';   // well outside any N-day window
 
 const FIXTURE_COMPANIES = [
-  // Beta comes first in the array so default alpha-asc sort is a visible change
-  { name: 'Beta Ltd',   location: 'Dublin', url: 'https://beta.example.com',  tags: ['EM', 'Scrum'],    lastClicked: TODAY,     status: null, usefulInfo: '', lastUpdated: null },
-  { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.example.com', tags: ['EM', 'Delivery'], lastClicked: OLD_DATE,  status: null, usefulInfo: '', lastUpdated: null },
-  { name: 'Gamma GmbH', location: 'Dublin', url: 'https://gamma.example.com', tags: [],                 lastClicked: null,      status: null, usefulInfo: '', lastUpdated: null },
+  // Beta comes first in the array so default alpha-asc sort is a visible change.
+  // Beta carries TWO update cards — a newer Rejected over an older Applied — so it is
+  // the JST-80 "non-latest match" case: filtering by Applied must surface it even though
+  // its derived (latest) status is Rejected. Two cards also give it an expand toggle,
+  // which the highlight test relies on.
+  { name: 'Beta Ltd',   location: 'Dublin', url: 'https://beta.example.com',  tags: ['EM', 'Scrum'],    lastClicked: TODAY,     status: null, usefulInfo: '', lastUpdated: null,
+    updates: [
+      { role: 'EM', status: 'Applied',  date: '2026-01-10T00:00:00.000Z', notes: '' },
+      { role: 'EM', status: 'Rejected', date: '2026-02-10T00:00:00.000Z', notes: '' }
+    ] },
+  { name: 'Alpha Corp', location: 'Dublin', url: 'https://alpha.example.com', tags: ['EM', 'Delivery'], lastClicked: OLD_DATE,  status: null, usefulInfo: '', lastUpdated: null,
+    updates: [{ role: 'Lead', status: 'Interviewing', date: '2026-03-01T00:00:00.000Z', notes: '' }] },
+  { name: 'Gamma GmbH', location: 'Dublin', url: 'https://gamma.example.com', tags: [],                 lastClicked: null,      status: null, usefulInfo: '', lastUpdated: null,
+    updates: [{ role: 'IC', status: 'Considering', date: '2026-03-05T00:00:00.000Z', notes: '' }] },
 ];
 
 // Seeds FIXTURE_COMPANIES into localStorage before navigating to the page.
@@ -44,6 +54,19 @@ async function seedAndLoad(page) {
 // Returns the text of every visible .company-name element.
 async function getVisibleCompanyNames(page) {
   return page.locator('.company-name').allTextContents();
+}
+
+// Opens the JST-80 status-filter popover (if closed) and ticks the given statuses.
+// The menu must be open for the checkboxes to be actionable — they live in a popover
+// that is display:none while hidden.
+async function selectStatuses(page, statuses) {
+  const toggle = page.locator('#company-status-toggle');
+  if ((await page.locator('#company-status-menu').getAttribute('hidden')) !== null) {
+    await toggle.click();
+  }
+  for (const status of statuses) {
+    await page.locator(`#company-status-menu input[value="${status}"]`).check();
+  }
 }
 
 // ─── Test 1: Controls exist with expected options ─────────────────────────────
@@ -221,4 +244,107 @@ test('sort works correctly on a filtered set', async ({ page }) => {
 
   // Gamma must not have reappeared
   expect(desc).not.toContain('Gamma GmbH');
+});
+
+// ─── JST-80: status filter ────────────────────────────────────────────────────
+// The status filter is a popover of checkboxes. A company is shown if ANY of its
+// update cards matches a checked status — matched across ALL cards, not just the
+// derived/latest one. These tests cover the UI interaction; the matching logic
+// itself is unit-tested in app.test.js.
+
+test('status filter control exists with a checkbox for every status', async ({ page }) => {
+  await seedAndLoad(page);
+
+  await expect(page.locator('#company-status-toggle')).toBeVisible();
+  // Menu starts hidden; open it before asserting the checkboxes are present.
+  await page.locator('#company-status-toggle').click();
+  for (const status of ['Considering', 'Applied', 'Interviewing', 'Offer', 'Rejected', 'Withdrawn']) {
+    await expect(page.locator(`#company-status-menu input[value="${status}"]`)).toHaveCount(1);
+  }
+});
+
+test('filtering by a status surfaces a company via a non-latest update card', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Beta Ltd's latest card is Rejected, but it has an older Applied card.
+  // Filtering by Applied must show Beta and hide Alpha (Interviewing) and Gamma (Considering).
+  await selectStatuses(page, ['Applied']);
+
+  const names = await getVisibleCompanyNames(page);
+  expect(names).toEqual(['Beta Ltd']);
+});
+
+test('selecting multiple statuses shows the union of matching companies', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Applied (Beta) OR Interviewing (Alpha); Gamma is Considering-only so stays hidden.
+  await selectStatuses(page, ['Applied', 'Interviewing']);
+
+  const names = await getVisibleCompanyNames(page);
+  expect(names).toContain('Beta Ltd');
+  expect(names).toContain('Alpha Corp');
+  expect(names).not.toContain('Gamma GmbH');
+});
+
+test('the status toggle label reflects how many statuses are selected', async ({ page }) => {
+  await seedAndLoad(page);
+
+  await expect(page.locator('#company-status-toggle')).toHaveText('All statuses ▾');
+
+  await selectStatuses(page, ['Applied']);
+  await expect(page.locator('#company-status-toggle')).toHaveText('1 selected ▾');
+
+  await selectStatuses(page, ['Interviewing']);
+  await expect(page.locator('#company-status-toggle')).toHaveText('2 selected ▾');
+});
+
+test('status filter composes with sort', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Filter to Applied + Interviewing (Beta + Alpha), then sort Z→A → Beta before Alpha.
+  await selectStatuses(page, ['Applied', 'Interviewing']);
+  await page.selectOption('#company-sort', 'alpha-desc');
+
+  const names = await getVisibleCompanyNames(page);
+  expect(names).toEqual(['Beta Ltd', 'Alpha Corp']);
+});
+
+test('Reset clears the status filter and restores all companies', async ({ page }) => {
+  await seedAndLoad(page);
+
+  await selectStatuses(page, ['Applied']);
+  expect(await getVisibleCompanyNames(page)).toEqual(['Beta Ltd']);
+
+  await page.locator('.company-controls-reset').click();
+
+  await expect(page.locator('#company-status-toggle')).toHaveText('All statuses ▾');
+  expect(await getVisibleCompanyNames(page)).toHaveLength(3);
+});
+
+test('clicking outside the popover closes it', async ({ page }) => {
+  await seedAndLoad(page);
+
+  await page.locator('#company-status-toggle').click();
+  await expect(page.locator('#company-status-menu')).toBeVisible();
+
+  // A click outside the filter (on a company name) should dismiss the popover.
+  await page.locator('.company-name').first().click();
+  await expect(page.locator('#company-status-menu')).toBeHidden();
+});
+
+test('matching update cards are highlighted in the expanded view', async ({ page }) => {
+  await seedAndLoad(page);
+
+  // Filter by Applied so only Beta Ltd shows; Beta has two cards (Rejected + Applied).
+  await selectStatuses(page, ['Applied']);
+  expect(await getVisibleCompanyNames(page)).toEqual(['Beta Ltd']);
+
+  // Expand Beta's update cards (it has a "+ 1 more" toggle because it has two cards).
+  await page.locator('.company-update-toggle').click();
+
+  // Exactly the Applied card should carry the .is-match highlight; the Rejected one must not.
+  const matched = page.locator('.company-update-card.is-match');
+  await expect(matched).toHaveCount(1);
+  await expect(matched).toContainText('Applied');
+  await expect(page.locator('.company-update-card:not(.is-match)')).toContainText('Rejected');
 });

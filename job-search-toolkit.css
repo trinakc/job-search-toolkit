@@ -1113,6 +1113,14 @@ textarea:focus {
   background: var(--surface);
 }
 
+/* JST-80: a card whose status matches the active status filter. The accent left
+   border + tinted background make it clear which cards caused the company to surface
+   in the filtered results, without disturbing the per-status badge colours. */
+.company-update-card.is-match {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-light);
+}
+
 .status-not-applied {
   background: var(--surface2);
   color: var(--text3);
@@ -1343,6 +1351,71 @@ textarea:focus {
 .company-controls-reset:hover {
   color: var(--text);
   border-color: var(--text);
+}
+
+/* ─── Status filter popover (JST-80) ─────────────────────────────────────────
+   A button that opens a checkbox menu of update-card statuses. Positioned relative
+   so the absolutely-positioned menu anchors beneath the toggle. */
+.status-filter {
+  position: relative;
+}
+
+/* Toggle button — sized to match the native <select> controls beside it */
+.status-filter-toggle {
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 7px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.status-filter-toggle:hover,
+.status-filter-toggle[aria-expanded="true"] {
+  border-color: var(--text);
+}
+
+/* Popover menu — floats above the grid below it (z-index) so it isn't clipped.
+   The [hidden] attribute keeps it removed from layout when closed. */
+.status-filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.status-filter-menu[hidden] {
+  display: none;
+}
+
+/* One checkbox + label row. Whole row is clickable via the wrapping <label>. */
+.status-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.status-filter-option:hover {
+  background: var(--surface2);
 }
 
 /* Count of visible vs total cards — shown only when a filter is active */

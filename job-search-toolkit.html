@@ -144,6 +144,30 @@
             </select>
           </div>
 
+          <!-- Status filter (JST-80): multi-select popover of update-card statuses.
+               A company is shown if ANY of its update cards matches a checked status
+               (matched across ALL cards, not just the derived/latest one). The toggle
+               button opens the checkbox menu (toggleStatusFilterMenu); each checkbox
+               re-renders on change. Status values mirror UPDATE_STATUSES in app.js —
+               keep the two in sync. -->
+          <div class="company-control-group">
+            <label id="company-status-label" class="control-label">Status</label>
+            <div class="status-filter" id="company-status-filter">
+              <button type="button" class="status-filter-toggle" id="company-status-toggle"
+                      aria-haspopup="true" aria-expanded="false" aria-controls="company-status-menu"
+                      onclick="toggleStatusFilterMenu()">All statuses ▾</button>
+              <div class="status-filter-menu" id="company-status-menu" role="group"
+                   aria-labelledby="company-status-label" hidden>
+                <label class="status-filter-option"><input type="checkbox" value="Considering" onchange="renderCompanies()"> Considering</label>
+                <label class="status-filter-option"><input type="checkbox" value="Applied" onchange="renderCompanies()"> Applied</label>
+                <label class="status-filter-option"><input type="checkbox" value="Interviewing" onchange="renderCompanies()"> Interviewing</label>
+                <label class="status-filter-option"><input type="checkbox" value="Offer" onchange="renderCompanies()"> Offer</label>
+                <label class="status-filter-option"><input type="checkbox" value="Rejected" onchange="renderCompanies()"> Rejected</label>
+                <label class="status-filter-option"><input type="checkbox" value="Withdrawn" onchange="renderCompanies()"> Withdrawn</label>
+              </div>
+            </div>
+          </div>
+
           <!-- Date filter: hides companies checked within the last N days.
                Companies never checked (lastClicked = null) are always shown. -->
           <div class="company-control-group">
