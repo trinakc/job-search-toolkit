@@ -17,7 +17,7 @@ async function openAddModal(page) {
   await page.goto(APP_URL);
   await page.evaluate(() => localStorage.setItem('jst_companies_v1', JSON.stringify([])));
   await page.reload();
-  await page.click('button.add-company-btn');
+  await page.getByRole('button', { name: '+ Add company' }).click();
   await expect(page.locator('#add-company-modal')).toBeVisible();
 }
 
@@ -29,7 +29,7 @@ async function fillCompany(page, name) {
 
 // Reopens a saved company's edit modal so we can inspect its rendered update cards.
 async function reopenEditModal(page, name) {
-  await page.locator('.company-card', { hasText: name }).locator('.edit-btn').first().click();
+  await page.locator('.company-card', { hasText: name }).getByRole('button', { name: 'Edit' }).first().click();
   await expect(page.locator('#add-company-modal')).toBeVisible();
 }
 
@@ -44,7 +44,10 @@ test('the initial-update section is collapsed by default with a visible toggle',
 
 test('clicking the toggle reveals focusable update fields', async ({ page }) => {
   await openAddModal(page);
-  await page.click('#initial-update-toggle');
+  // Scoped to #initial-update-section: both Add and Edit modes have a
+  // "+ Add update" button: getByRole alone works today only because the
+  // Edit-mode button is hidden in Add mode, not because this is unique.
+  await page.locator('#initial-update-section').getByRole('button', { name: '+ Add update' }).click();
 
   await expect(page.locator('#initial-update-fields')).toBeVisible();
   await expect(page.locator('#initial-update-toggle')).toHaveAttribute('aria-expanded', 'true');
@@ -58,9 +61,11 @@ test('clicking the toggle reveals focusable update fields', async ({ page }) => 
 test('the toggle is keyboard accessible', async ({ page }) => {
   await openAddModal(page);
 
-  // Focus the toggle and activate it with the keyboard (Enter) — no mouse.
-  await page.locator('#initial-update-toggle').focus();
-  await page.keyboard.press('Enter');
+  // Activates the toggle via keyboard only (Playwright's .press() focuses
+  // the element before sending the key — no mouse, no separate focus step).
+  // Scoped to #initial-update-section: see note on the click test above re:
+  // the ambiguous "+ Add update" name across Add/Edit modes.
+  await page.locator('#initial-update-section').getByRole('button', { name: '+ Add update' }).press('Enter');
 
   await expect(page.locator('#initial-update-fields')).toBeVisible();
   await expect(page.locator('#initial-update-toggle')).toHaveAttribute('aria-expanded', 'true');
@@ -69,7 +74,7 @@ test('the toggle is keyboard accessible', async ({ page }) => {
 test('saving with the section collapsed creates a company with no update cards', async ({ page }) => {
   await openAddModal(page);
   await fillCompany(page, 'Collapsed Co');
-  await page.click('#modal-submit-btn');
+  await page.locator('#add-company-modal').getByRole('button', { name: 'Save company' }).click();
 
   await expect(page.locator('#add-company-modal')).not.toBeVisible();
   await expect(page.locator('.company-card', { hasText: 'Collapsed Co' })).toBeVisible();
@@ -84,12 +89,12 @@ test('saving with the section expanded and filled creates one pre-populated upda
   await openAddModal(page);
   await fillCompany(page, 'Filled Co');
 
-  await page.click('#initial-update-toggle');
+  await page.locator('#initial-update-section').getByRole('button', { name: '+ Add update' }).click();
   await page.fill('#initial-update-role', 'Engineering Manager');
   await page.selectOption('#initial-update-status', 'Applied');
   await page.fill('#initial-update-date', '2026-06-10');
   await page.fill('#initial-update-notes', 'Applied via referral');
-  await page.click('#modal-submit-btn');
+  await page.locator('#add-company-modal').getByRole('button', { name: 'Save company' }).click();
 
   await expect(page.locator('#add-company-modal')).not.toBeVisible();
   await expect(page.locator('.company-card', { hasText: 'Filled Co' })).toBeVisible();
@@ -108,9 +113,9 @@ test('saving with the section expanded but no status creates no update card', as
   await fillCompany(page, 'Blank Co');
 
   // Expand and type notes, but leave the status on its blank option.
-  await page.click('#initial-update-toggle');
+  await page.locator('#initial-update-section').getByRole('button', { name: '+ Add update' }).click();
   await page.fill('#initial-update-notes', 'typed but no status chosen');
-  await page.click('#modal-submit-btn');
+  await page.locator('#add-company-modal').getByRole('button', { name: 'Save company' }).click();
 
   await expect(page.locator('#add-company-modal')).not.toBeVisible();
 
